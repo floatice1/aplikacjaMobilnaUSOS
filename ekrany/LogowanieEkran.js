@@ -1,10 +1,9 @@
 import { StyleSheet, Text, TextInput, TouchableOpacity, View, Alert } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { useNavigation } from '@react-navigation/native'
-import { auth } from '../firebase'
+import { auth,firestore } from '../firebase'
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-
 
 const LogowanieEkran = () => {
     const [email, setEmail] = useState('')
@@ -24,12 +23,10 @@ const LogowanieEkran = () => {
 
     const zalogujUzytkownika = async () => {
         try {
-          // Logowanie użytkownika
           const daneUzytkownika = await signInWithEmailAndPassword(auth, email, haslo);
           const uzytkownik = daneUzytkownika.user;
           console.log('Logowany użytkownik:', uzytkownik.email);
     
-          // Sprawdzamy rolę użytkownika w Firestore
           const docRef = doc(firestore, 'users', uzytkownik.uid);
           const docSnap = await getDoc(docRef);
     
@@ -37,14 +34,16 @@ const LogowanieEkran = () => {
             const userData = docSnap.data();
             const userRole = userData.role;
     
-            // Na podstawie roli użytkownika przekierowujemy do odpowiedniego ekranu
             if (userRole === 'admin') {
-              // Przekierowanie do ekranu dla administratora
-              nawigacja.replace('AdminScreen');
-            } else {
-              // Przekierowanie do standardowego ekranu
+              nawigacja.replace('AdminEkran');
+            } else if (userRole === 'prowadzący') {
+              nawigacja.replace('ProwadzacyEkran'); 
+            } else if (userRole === 'dziekanat') {
+              nawigacja.replace('DziekanatNavigation');
+            }else if (userRole === 'student') {
               nawigacja.replace('TabNavigation');
             }
+            
           } else {
             Alert.alert('Błąd', 'Użytkownik nie ma przypisanej roli w systemie.');
           }

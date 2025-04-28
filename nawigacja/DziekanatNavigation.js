@@ -1,16 +1,16 @@
 import React from 'react'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
-import GlownyEkran from '../ekrany/GlownyEkran';
+import DziekanatEkran from '../ekrany/DziekanatEkran';
 
-const TabNavigation = () => {
+const DziekanatNavigation = () => {
     
     const Tab = createBottomTabNavigator();
 
     return (
         <Tab.Navigator screenOptions={{headerShown:false}}>
-            <Tab.Screen name="GlownyEkran" component={GlownyEkran} />
+            <Tab.Screen name="DziekanatEkran" component={DziekanatEkran} />
         </Tab.Navigator>
   )
 }
 
-export default TabNavigation
+export default DziekanatNavigation
