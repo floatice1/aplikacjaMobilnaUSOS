@@ -17,7 +17,6 @@ const Stos = () => {
           <stos.Screen options={{headerShown: false}} name='TabNavigation' component={TabNavigation}/>
           <stos.Screen options={{headerShown: false}} name='AdminEkran' component={AdminEkran}/>
           <stos.Screen options={{headerShown: false}} name='DziekanatNavigation' component={DziekanatNavigation}/>
-
     </stos.Navigator>
   )
 }
