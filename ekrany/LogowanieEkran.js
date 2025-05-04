@@ -27,6 +27,9 @@ const LogowanieEkran = () => {
           const uzytkownik = daneUzytkownika.user;
           console.log('Logowany użytkownik:', uzytkownik.email);
     
+          const idToken = await user.getIdToken();
+          console.log('Firebase ID Token:', idToken);
+
           const docRef = doc(firestore, 'users', uzytkownik.uid);
           const docSnap = await getDoc(docRef);
     
