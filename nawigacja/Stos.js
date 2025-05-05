@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import TabNavigation from './TabNavigation';
 import AdminEkran from '../ekrany/AdminEkran';
 import DziekanatNavigation from './DziekanatNavigation';
+import ProwadzacyEkran from '../ekrany/ProwadzacyEkran';
 
 
 const stos = createNativeStackNavigator();
@@ -16,6 +17,7 @@ const Stos = () => {
           <stos.Screen options={{headerShown: false}} name='Rejestracja' component={RejestracjaEkran} />
           <stos.Screen options={{headerShown: false}} name='TabNavigation' component={TabNavigation}/>
           <stos.Screen options={{headerShown: false}} name='AdminEkran' component={AdminEkran}/>
+          <stos.Screen options={{headerShown: false}} name='ProwadzacyEkran' component={ProwadzacyEkran}/>
           <stos.Screen options={{headerShown: false}} name='DziekanatNavigation' component={DziekanatNavigation}/>
 
     </stos.Navigator>
