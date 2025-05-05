@@ -46,7 +46,7 @@ const AdminEkran = () => {
         'Wybierz nową rolę:',
         [
           { text: 'Student', onPress: () => resolve('student') },
-          { text: 'Prowadzący', onPress: () => resolve('prowadzący') },
+          { text: 'Prowadzący', onPress: () => resolve('prowadzacy') },
           { text: 'Dziekant', onPress: () => resolve('dziekanat') },
         ]
       );

@@ -21,6 +21,7 @@ const LogowanieEkran = () => {
       return stanLogowania
     }, [])
 
+
     const zalogujUzytkownika = async () => {
         try {
           const daneUzytkownika = await signInWithEmailAndPassword(auth, email, haslo);
@@ -36,7 +37,7 @@ const LogowanieEkran = () => {
     
             if (userRole === 'admin') {
               nawigacja.replace('AdminEkran');
-            } else if (userRole === 'prowadzący') {
+            } else if (userRole === 'prowadzacy') {
               nawigacja.replace('ProwadzacyEkran'); 
             } else if (userRole === 'dziekanat') {
               nawigacja.replace('DziekanatNavigation');

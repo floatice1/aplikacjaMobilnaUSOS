@@ -23,10 +23,9 @@ export default function RejestracjaEkran() {
         const uzytkownik = userCredentials.user;
         console.log('Rejestracja za pomocą:', uzytkownik.email);
 
-        // Zapisywanie użytkownika w kolekcji 'users' w Firestore z rolą 'student'
         await setDoc(doc(firestore, 'users', uzytkownik.uid), {
           email: uzytkownik.email,
-          role: 'student', // Domyślna rola: student
+          role: 'student', 
         });
 
         nawigacja.replace('TabNavigation');
