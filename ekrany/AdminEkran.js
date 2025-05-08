@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, Alert, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, Alert, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { auth, firestore } from '../firebase';
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
@@ -47,7 +47,7 @@ const AdminEkran = () => {
         [
           { text: 'Student', onPress: () => resolve('student') },
           { text: 'Prowadzący', onPress: () => resolve('prowadzacy') },
-          { text: 'Dziekant', onPress: () => resolve('dziekanat') },
+          { text: 'Dziekanat', onPress: () => resolve('dziekanat') },
         ]
       );
     });
@@ -86,11 +86,15 @@ const AdminEkran = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Admin Usos</Text>
+  
       <FlatList
         data={users}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()} 
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
       />
+  
       <TouchableOpacity
         style={styles.logoutButton}
         onPress={wyloguj}
@@ -98,41 +102,49 @@ const AdminEkran = () => {
         <Text style={styles.logoutButtonText}>Wyloguj</Text>
       </TouchableOpacity>
     </View>
-  );
+  );  
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingTop: 20,
+    paddingTop: 50,
+    paddingHorizontal: 20,
   },
   header: {
-    fontSize: 28,  
+    fontSize: 32,
     fontWeight: 'bold',
-    marginBottom: 20,
     color: '#333',
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  listContainer: {
+    paddingBottom: 80,
   },
   userContainer: {
-    backgroundColor: '#f1f1f1',
+    backgroundColor: '#ffffff',
     padding: 20,
-    marginVertical: 12,
-    width: '90%',
-    borderRadius: 8,
+    marginVertical: 10,
+    borderRadius: 12,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#3498db',
+    borderWidth: 1,
+    borderColor: '#dcdcdc',
   },
   userText: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#333',
   },
   dotsContainer: {
-    flexDirection: 'row', 
+    flexDirection: 'row',
     alignItems: 'center',
   },
   dots: {
@@ -143,14 +155,21 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     backgroundColor: '#e74c3c',
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 5,
-    marginTop: 20,
+    paddingVertical: 15,
+    borderRadius: 30,
+    alignItems: 'center',
+    alignSelf: 'center',
+    width: 180,
+    marginVertical: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
   },
   logoutButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
+    color: '#fff',
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });
