@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
+import { View, Text, TextInput, ScrollView, Alert, StyleSheet, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { firestore } from '../firebase';
 import {
@@ -11,6 +11,7 @@ import {
   updateDoc,
   arrayUnion
 } from 'firebase/firestore';
+import colors from '../assets/colors/colors';
 
 const StudentOcenyEkran = () => {
   const [students, setStudents] = useState([]);
@@ -90,56 +91,170 @@ const StudentOcenyEkran = () => {
 
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Dodaj nowy przedmiot</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Nazwa przedmiotu"
-        value={newSubjectName}
-        onChangeText={setNewSubjectName}
-      />
-      <Button title="Dodaj przedmiot" onPress={addSubject} />
+    <ScrollView style={styles.container}>
+      <View style={styles.wrapper}>
+        <Text style={styles.sectionTitle}>Dodaj nowy przedmiot</Text>
+        <Text style={styles.sectionSubtitle}>Wprowadź nazwę nowego przedmiotu i zatwierdź</Text>
 
-      <Text style={styles.title}>Wybierz studenta</Text>
-      <Picker
-        selectedValue={selectedStudentId}
-        onValueChange={setSelectedStudentId}
-        style={styles.input}
+        <TextInput
+          style={styles.input}
+          placeholder="Nazwa przedmiotu"
+          value={newSubjectName}
+          onChangeText={setNewSubjectName}
+        />
+
+        {newSubjectName === '' && (
+          <Text style={styles.errorText}>Nazwa przedmiotu jest wymagana</Text>
+        )}
+
+        <TouchableOpacity
+          style={[styles.buttonAdd, { opacity: newSubjectName === '' ? 0.5 : 1 }]}
+          onPress={addSubject}
+          disabled={newSubjectName === ''}
+        >
+          <Text style={styles.buttonText}>Dodaj przedmiot</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.wrapper}>
+        <Text style={styles.sectionTitle}>Wybierz studenta</Text>
+        <Text style={styles.sectionSubtitle}>Zdecyduj, którego studenta przypisać</Text>
+
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={selectedStudentId}
+            onValueChange={setSelectedStudentId}
+            style={styles.picker}
+            dropdownIconColor={colors.fontEN}
+          >
+            <Picker.Item style={{fontSize:12}} label="-- Wybierz studenta --" value="" />
+            {students.map(student => (
+              <Picker.Item style={{fontSize:12}} key={student.id} label={student.email} value={student.id} />
+            ))}
+          </Picker>
+        </View>
+
+        {selectedStudentId === '' && (
+          <Text style={styles.errorText}>Wybór studenta jest wymagany</Text>
+        )}
+      </View>
+
+      <View style={styles.wrapper}>
+        <Text style={styles.sectionTitle}>Wybierz przedmiot</Text>
+        <Text style={styles.sectionSubtitle}>Wybierz przedmiot, do którego przypisać studenta</Text>
+
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={selectedSubjectId}
+            onValueChange={setSelectedSubjectId}
+            style={styles.picker}
+            dropdownIconColor={colors.fontEN}
+          >
+            <Picker.Item style={{fontSize:12}} label="-- Wybierz przedmiot --" value="" />
+            {subjects.map(subject => (
+              <Picker.Item style={{fontSize:12}} key={subject.id} label={subject.name} value={subject.id} />
+            ))}
+          </Picker>
+        </View>
+
+        {selectedSubjectId === '' && (
+          <Text style={styles.errorText}>Wybór przedmiotu jest wymagany</Text>
+        )}
+      </View>
+
+      <TouchableOpacity
+        style={[
+          styles.buttonAdd,
+          { opacity: selectedStudentId === '' || selectedSubjectId === '' ? 0.5 : 1 },
+        ]}
+        onPress={assignStudentToSubject}
+        disabled={selectedStudentId === '' || selectedSubjectId === ''}
       >
-        <Picker.Item label="-- Wybierz studenta --" value="" />
-        {students.map(student => (
-          <Picker.Item key={student.id} label={student.email} value={student.id} />
-        ))}
-      </Picker>
-
-      <Text style={styles.title}>Wybierz przedmiot</Text>
-      <Picker
-        selectedValue={selectedSubjectId}
-        onValueChange={setSelectedSubjectId}
-        style={styles.input}
-      >
-        <Picker.Item label="-- Wybierz przedmiot --" value="" />
-        {subjects.map(subject => (
-          <Picker.Item key={subject.id} label={subject.name} value={subject.id} />
-        ))}
-      </Picker>
-
-      <Button title="Przypisz studenta do przedmiotu" onPress={assignStudentToSubject} />
-      
-    </View>
+        <Text style={styles.buttonText}>Przypisz studenta do przedmiotu</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { padding: 20 },
-  title: { fontSize: 18, fontWeight: 'bold', marginVertical: 10 },
+  container:{
+    marginTop:25
+  },
+  wrapper: {
+    backgroundColor: colors.lightWhite,
+    borderRadius: 15,
+    padding: 20,
+    borderColor: colors.darkFont,
+    borderWidth: 1.5,
+    marginVertical: 15,
+    width: '95%',
+    alignSelf: 'center',
+  },
+  
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    color: colors.darkFont,
+  },
+  
+  sectionSubtitle: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 10,
+  },
+  
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 5,
     padding: 10,
     marginVertical: 5,
+    fontSize: 14,
+    backgroundColor: '#fff',
+    minWidth: 300,
   },
+  
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    marginBottom: 10,
+  },
+  
+  picker: {
+    height: 48,
+    width: '100%',
+    paddingHorizontal: 10,
+  },
+  buttonAdd: {
+    backgroundColor: colors.fontEN,
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 50,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical:10,
+    alignSelf: 'center',
+  },
+  
+  buttonText: {
+    color: colors.lightWhite,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  
+  errorText: {
+    color: 'red',
+    fontSize: 12,
+    marginBottom: 5,
+  },  
 });
 
 export default StudentOcenyEkran;

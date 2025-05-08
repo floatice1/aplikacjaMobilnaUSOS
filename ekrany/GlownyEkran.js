@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Alert, TouchableOpacity } from 'react-native';
 import { firestore } from '../firebase';
 import { getAuth } from 'firebase/auth';
-import { collection, doc, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native'; 
+import colors from '../assets/colors/colors';
 
 const GlownyEkran = () => {
   const [subjects, setSubjects] = useState([]);
@@ -62,16 +63,26 @@ const GlownyEkran = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Usos</Text>
+      <Text style={styles.appTitle}>Usos</Text>
+      <Text style={styles.sectionSubtitle}>Twoje przedmioty i oceny</Text>
 
-      <FlatList
-        data={subjects}
-        keyExtractor={item => item.id}
-        renderItem={renderItem}
-        ListHeaderComponent={<Text style={styles.subtitle}>Twoje przedmioty i oceny</Text>}
-      />
+      {subjects.map((item) => (
+        <View key={item.id} style={styles.card}>
+          <Text style={styles.cardTitle}>{item.name}</Text>
+          <View style={styles.gradeRow}>
+            {item.grades.length > 0 ? (
+              item.grades.map((grade, index) => (
+                <View key={index} style={styles.gradeBox}>
+                  <Text style={styles.gradeText}>{grade}</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.noGradesText}>Brak ocen</Text>
+            )}
+          </View>
+        </View>
+      ))}
 
-      {/* Przycisk Wyloguj */}
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutButtonText}>Wyloguj</Text>
       </TouchableOpacity>
@@ -82,45 +93,77 @@ const GlownyEkran = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    paddingVertical: 30,
+    paddingHorizontal:10,
     backgroundColor: '#f4f4f4',
   },
-  title: {
-    fontSize: 40,
+  appTitle: {
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#303F9F',
-    marginBottom: 20,
+    color: colors.darkYellow,
     textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#303F9F',
     marginBottom: 10,
   },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderColor: '#ccc',
-  },
-  cell: {
+  sectionSubtitle: {
     fontSize: 16,
-    color: '#303F9F',
-    flex: 1,
     textAlign: 'center',
+    color: '#666',
+    marginBottom: 20,
+  },
+  card: {
+    backgroundColor: colors.lightWhite,
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 20,
+    borderColor: colors.darkFont,
+    borderWidth: 1.2,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.fontEN,
+    marginBottom: 10,
+  },
+  gradeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  gradeBox: {
+    backgroundColor: '#E3E3E3',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginRight: 6,
+    marginBottom: 6,
+  },
+  gradeText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+  },
+  noGradesText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    color: '#999',
   },
   logoutButton: {
-    marginTop: 20,
-    paddingVertical: 10,
-    backgroundColor: '#f39c12',
-    borderRadius: 5,
+    backgroundColor: '#FF3B30',
+    paddingVertical: 15,
+    borderRadius: 50,
     alignItems: 'center',
+    alignSelf: 'center',
+    marginTop: 20,
+    width: '45%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 5,
   },
   logoutButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
+    color: colors.lightWhite,
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });

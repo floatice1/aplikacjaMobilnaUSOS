@@ -1,9 +1,10 @@
-import { StyleSheet, Text, TextInput, TouchableOpacity, View, Alert } from 'react-native'
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, Alert,ScrollView,Platform, KeyboardAvoidingView } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { useNavigation } from '@react-navigation/native'
 import { auth,firestore } from '../firebase'
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import colors from '../assets/colors/colors';
 
 const LogowanieEkran = () => {
     const [email, setEmail] = useState('')
@@ -71,153 +72,183 @@ const LogowanieEkran = () => {
     };
 
     return (
-      <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
         <Text style={styles.logo}>Usos</Text>
 
-        <TextInput
+        <View style={styles.formCard}>
+          <TextInput
             placeholder="Email"
+            placeholderTextColor="#999"
             value={email}
             onChangeText={text => setEmail(text)}
             style={styles.input}
-        />
-        <TextInput
+          />
+          <TextInput
             placeholder="Hasło"
+            placeholderTextColor="#999"
             value={haslo}
             onChangeText={text => setHaslo(text)}
             style={styles.input}
             secureTextEntry
-        />
-      
-        <TouchableOpacity
-            onPress={zalogujUzytkownika}
-            style={styles.loginButton}
-        >
+          />
+
+          <TouchableOpacity onPress={zalogujUzytkownika} style={styles.loginButton}>
             <Text style={styles.loginButtonText}>Zaloguj</Text>
-        </TouchableOpacity>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-            onPress={() => setPokazResetowanieHasla(true)} 
+          <TouchableOpacity
+            onPress={() => setPokazResetowanieHasla(true)}
             style={styles.resetPasswordButton}
-        >
+          >
             <Text style={styles.resetPasswordText}>Zapomniałeś hasła?</Text>
-        </TouchableOpacity>
+          </TouchableOpacity>
 
-        {pokazResetowanieHasla && (
-          <View style={styles.resetPasswordContainer}>
-            <TextInput
-              placeholder="Wpisz swój email"
-              value={resetEmail}
-              onChangeText={setResetEmail}
-              style={styles.input}
-            />
-            <TouchableOpacity
-              onPress={resetHaslo}
-              style={styles.loginButton}
-            >
-                <Text style={styles.loginButtonText}>Resetuj hasło</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setPokazResetowanieHasla(false)} 
-              style={styles.cancelButton}
-            >
+          {pokazResetowanieHasla && (
+            <View style={styles.resetPasswordContainer}>
+              <TextInput
+                placeholder="Wpisz swój email"
+                placeholderTextColor="#999"
+                value={resetEmail}
+                onChangeText={setResetEmail}
+                style={styles.input}
+              />
+              <TouchableOpacity onPress={resetHaslo} style={styles.resetButton}>
+                <Text style={styles.resetButtonText}>Resetuj hasło</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setPokazResetowanieHasla(false)}
+                style={styles.cancelButton}
+              >
                 <Text style={styles.cancelButtonText}>Anuluj</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>Nie masz konta?</Text>
-            <TouchableOpacity 
-                style={styles.registerButton} 
-                onPress={() => nawigacja.navigate('Rejestracja')}
-            >
-                <Text style={styles.registerButtonText}>Zarejestruj się</Text>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
-      </View>
+        <View style={styles.registerContainer}>
+          <Text style={styles.registerText}>Nie masz konta?</Text>
+          <TouchableOpacity
+            style={styles.registerButton}
+            onPress={() => nawigacja.navigate('Rejestracja')}
+          >
+            <Text style={styles.registerButtonText}>Zarejestruj się</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
     )
 }
 
 export default LogowanieEkran
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#303F9F',
-  },
+    padding: 20,
+  },  
   logo: {
-    fontSize: 30,
+    fontSize: 40,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: colors.darkYellow,
     marginBottom: 30,
   },
+  formCard: {
+    backgroundColor: '#fff',
+    padding: 25,
+    borderRadius: 20,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
+  },
   input: {
-    width: 300,
-    height: 40,
-    backgroundColor: '#ffffff',
-    marginBottom: 20,
-    color: '#000000',
-    paddingHorizontal: 10,
-    borderRadius: 5,
+    backgroundColor: '#F4F4F4',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 15,
+    fontSize: 12,
+    color: '#000',
   },
   loginButton: {
-    backgroundColor: '#2ecc71', 
+    backgroundColor: '#2ecc71',
     paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 5,
+    borderRadius: 50,
+    alignItems: 'center',
     marginBottom: 10,
   },
   loginButtonText: {
-    color: '#ffffff',
+    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
   resetPasswordButton: {
-    marginTop: 10,
-    paddingVertical: 10,
+    marginTop: 5,
+    alignItems: 'center',
   },
   resetPasswordText: {
-    color: '#ffffff',
+    color: colors.fontEN,
     fontSize: 14,
     textDecorationLine: 'underline',
   },
   resetPasswordContainer: {
-    width: '80%',
+    marginTop: 15,
+  },
+  resetButton: {
+    backgroundColor: '#FF9500',
+    paddingVertical: 12,
+    borderRadius: 50,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 10,
+  },
+  resetButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   cancelButton: {
     marginTop: 10,
-    paddingVertical: 10,
+    alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#ffffff',
+    color: colors.darkFont,
     fontSize: 14,
     textDecorationLine: 'underline',
   },
   registerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    marginTop: 30,
     alignItems: 'center',
-    position: 'absolute',
-    bottom: 20, 
-    width: '100%',
   },
   registerText: {
-    color: '#ffffff',
-    marginRight: 5,
+    color: colors.darkFont,
+    fontSize: 14,
+    marginTop: 10,
   },
   registerButton: {
-    backgroundColor: '#e74c3c', 
+    backgroundColor: colors.fontEN,
     paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 5,
+    borderRadius: 50,
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginTop: 20,
+    width: 150,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 5,
   },
   registerButtonText: {
-    color: '#ffffff',
+    color: colors.lightWhite,
     fontSize: 16,
     fontWeight: 'bold',
   },
