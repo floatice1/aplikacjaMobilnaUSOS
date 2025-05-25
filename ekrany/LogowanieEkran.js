@@ -1,255 +1,312 @@
-import { StyleSheet, Text, TextInput, TouchableOpacity, View, Alert,ScrollView,Platform, KeyboardAvoidingView } from 'react-native'
-import React, { useEffect, useState } from 'react'
-import { useNavigation } from '@react-navigation/native'
-import { auth,firestore } from '../firebase'
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Alert,
+  ScrollView,
+  Platform,
+  KeyboardAvoidingView,
+  SafeAreaView,
+  StatusBar,
+  Dimensions,
+} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import { auth } from '../firebase';
+import { signInWithCustomToken, sendPasswordResetEmail } from 'firebase/auth';
 import colors from '../assets/colors/colors';
+import { api } from '../serwisy/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const { width, height } = Dimensions.get('window');
 
 const LogowanieEkran = () => {
-    const [email, setEmail] = useState('')
-    const [haslo, setHaslo] = useState('')
-    const [resetEmail, setResetEmail] = useState('') 
-    const [pokazResetowanieHasla, setPokazResetowanieHasla] = useState(false) 
-    const nawigacja = useNavigation()
+  const [email, setEmail] = useState('');
+  const [haslo, setHaslo] = useState('');
+  const [resetEmail, setResetEmail] = useState('');
+  const [pokazResetowanieHasla, setPokazResetowanieHasla] = useState(false);
+  const nawigacja = useNavigation();
 
-    useEffect(() => {
-      const stanLogowania = auth.onAuthStateChanged(uzytkownik => {
-        if (uzytkownik) {
-          nawigacja.replace("TabNavigation")
-        }
-      })
-      return stanLogowania
-    }, [])
+  const zalogujUzytkownika = async () => {
+      if (!email || !haslo) {
+          Alert.alert('Błąd', 'Proszę wypełnić pola email i hasło.');
+          return;
+      }
+      try {
+          const response = await api.post('auth/login', {
+              email: email,
+              haslo: haslo
+          });
 
-
-    const zalogujUzytkownika = async () => {
-        try {
-          const daneUzytkownika = await signInWithEmailAndPassword(auth, email, haslo);
-          const uzytkownik = daneUzytkownika.user;
-          console.log('Logowany użytkownik:', uzytkownik.email);
-    
-          const docRef = doc(firestore, 'users', uzytkownik.uid);
-          const docSnap = await getDoc(docRef);
-    
-          if (docSnap.exists()) {
-            const userData = docSnap.data();
-            const userRole = userData.role;
-    
-            if (userRole === 'admin') {
-              nawigacja.replace('AdminEkran');
-            } else if (userRole === 'prowadzacy') {
-              nawigacja.replace('ProwadzacyEkran'); 
-            } else if (userRole === 'dziekanat') {
-              nawigacja.replace('DziekanatNavigation');
-            }else if (userRole === 'student') {
-              nawigacja.replace('TabNavigation');
-            }
-            
-          } else {
-            Alert.alert('Błąd', 'Użytkownik nie ma przypisanej roli w systemie.');
+          const { token } = response;
+          if (!token) {
+              Alert.alert('Błąd', 'Nie otrzymano tokena autoryzacyjnego.');
+              return;
           }
-        } catch (error) {
-          Alert.alert('Błąd', error.message);
-        }
-      };
 
-    const resetHaslo = () => {
-        if (!resetEmail) {
-            Alert.alert('Błąd', 'Musisz podać adres email!');
-            return;
-        }
+          const userCredential = await signInWithCustomToken(auth, token);
+          const idToken = await userCredential.user.getIdToken();
+          await AsyncStorage.setItem('authToken', idToken);
 
-        sendPasswordResetEmail(auth, resetEmail)
-            .then(() => {
-                Alert.alert('Sukces', 'Link do resetowania hasła został wysłany na Twój adres email.');
-                setPokazResetowanieHasla(false); 
-            })
-            .catch(error => {
-                console.error('Błąd przy resetowaniu hasła: ', error.message);
-                Alert.alert('Błąd', 'Nie udało się wysłać linku do resetowania hasła.');
-            });
-    };
+          const userData = userCredential.user;
+          const idTokenResult = await userData.getIdTokenResult();
+          const userRole = idTokenResult.claims['role'];
 
-    return (
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          keyboardShouldPersistTaps="handled"
-        >
-        <Text style={styles.logo}>Usos</Text>
+          console.log('Rola użytkownika:', userRole);
 
-        <View style={styles.formCard}>
-          <TextInput
-            placeholder="Email"
-            placeholderTextColor="#999"
-            value={email}
-            onChangeText={text => setEmail(text)}
-            style={styles.input}
+          if (userRole === 'wykladowca') { 
+              nawigacja.replace('ProwadzacyEkran');
+          } else if (userRole === 'dziekanat') {
+              nawigacja.replace('DziekanatNavigation');
+          } else if (userRole === 'student') {
+              nawigacja.replace('GlownyEkran');
+          } else {
+              Alert.alert('Błąd', 'Nieznana rola użytkownika. Skontaktuj się z administratorem.');
+              nawigacja.replace('TabNavigation');
+          }
+      } catch (error) {
+          console.error("Login Error:", error);
+          let errorMessage = "Wystąpił błąd podczas logowania.";
+          if (error.response && error.response.data && error.response.data.detail) {
+              errorMessage = error.response.data.detail;
+          } else if (error.code) {
+              switch (error.code) {
+                  case 'auth/invalid-custom-token':
+                      errorMessage = 'Token autoryzacyjny jest nieprawidłowy lub wygasł.';
+                      break;
+                  case 'auth/network-request-failed':
+                      errorMessage = 'Błąd sieci. Sprawdź połączenie internetowe.';
+                      break;
+                  default:
+                      errorMessage = `Błąd logowania: ${error.message}`;
+              }
+          } else if (error.message) {
+              errorMessage = error.message;
+          }
+          Alert.alert('Błąd logowania', errorMessage);
+      }
+  };
+
+  const resetHaslo = () => {
+      if (!resetEmail.trim()) {
+          Alert.alert('Błąd', 'Musisz podać adres email do zresetowania hasła.');
+          return;
+      }
+      sendPasswordResetEmail(auth, resetEmail)
+          .then(() => {
+              Alert.alert('Sukces', 'Link do resetowania hasła został wysłany na Twój adres email (jeśli konto istnieje).');
+              setPokazResetowanieHasla(false);
+              setResetEmail('');
+          })
+          .catch(error => {
+              console.error('Błąd przy resetowaniu hasła: ', error.message, error.code);
+              let resetErrorMessage = 'Nie udało się wysłać linku do resetowania hasła.';
+              Alert.alert('Błąd', resetErrorMessage);
+          });
+  };
+
+  return (
+      <SafeAreaView style={styles.safeArea}>
+          <StatusBar
+              barStyle={Platform.OS === 'ios' ? "dark-content" : "light-content"}
+              backgroundColor={colors.statusBarBackground || colors.background || '#FFFFFF'}
           />
-          <TextInput
-            placeholder="Hasło"
-            placeholderTextColor="#999"
-            value={haslo}
-            onChangeText={text => setHaslo(text)}
-            style={styles.input}
-            secureTextEntry
-          />
-
-          <TouchableOpacity onPress={zalogujUzytkownika} style={styles.loginButton}>
-            <Text style={styles.loginButtonText}>Zaloguj</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setPokazResetowanieHasla(true)}
-            style={styles.resetPasswordButton}
+          <KeyboardAvoidingView
+              style={styles.keyboardAvoidingContainer}
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
           >
-            <Text style={styles.resetPasswordText}>Zapomniałeś hasła?</Text>
-          </TouchableOpacity>
-
-          {pokazResetowanieHasla && (
-            <View style={styles.resetPasswordContainer}>
-              <TextInput
-                placeholder="Wpisz swój email"
-                placeholderTextColor="#999"
-                value={resetEmail}
-                onChangeText={setResetEmail}
-                style={styles.input}
-              />
-              <TouchableOpacity onPress={resetHaslo} style={styles.resetButton}>
-                <Text style={styles.resetButtonText}>Resetuj hasło</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setPokazResetowanieHasla(false)}
-                style={styles.cancelButton}
+              <ScrollView
+                  contentContainerStyle={styles.scrollContainer}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
               >
-                <Text style={styles.cancelButtonText}>Anuluj</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
+                  <Text style={styles.logo}>Usos</Text>
 
-        <View style={styles.registerContainer}>
-          <Text style={styles.registerText}>Nie masz konta?</Text>
-          <TouchableOpacity
-            style={styles.registerButton}
-            onPress={() => nawigacja.navigate('Rejestracja')}
-          >
-            <Text style={styles.registerButtonText}>Zarejestruj się</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
-    )
-}
+                  <View style={styles.formCard}>
+                      <Text style={styles.cardTitle}>Logowanie</Text>
+                      <TextInput
+                          placeholder="Email"
+                          placeholderTextColor={colors.placeholderText || "#A9A9A9"}
+                          value={email}
+                          onChangeText={text => setEmail(text)}
+                          style={styles.input}
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                          textContentType="emailAddress"
+                      />
+                      <TextInput
+                          placeholder="Hasło"
+                          placeholderTextColor={colors.placeholderText || "#A9A9A9"}
+                          value={haslo}
+                          onChangeText={text => setHaslo(text)}
+                          style={styles.input}
+                          secureTextEntry
+                          textContentType="password"
+                      />
 
-export default LogowanieEkran
+                      <TouchableOpacity onPress={zalogujUzytkownika} style={styles.loginButton}>
+                          <Text style={styles.loginButtonText}>Zaloguj</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                          onPress={() => setPokazResetowanieHasla(!pokazResetowanieHasla)}
+                          style={styles.forgotPasswordButton}
+                      >
+                          <Text style={styles.forgotPasswordText}>Zapomniałeś hasła?</Text>
+                      </TouchableOpacity>
+
+                      {pokazResetowanieHasla && (
+                          <View style={styles.resetPasswordSection}>
+                              <TextInput
+                                  placeholder="Wpisz swój email do resetu"
+                                  placeholderTextColor={colors.placeholderText || "#A9A9A9"}
+                                  value={resetEmail}
+                                  onChangeText={setResetEmail}
+                                  style={[styles.input, styles.resetInput]}
+                                  keyboardType="email-address"
+                                  autoCapitalize="none"
+                              />
+                              <TouchableOpacity onPress={resetHaslo} style={styles.resetButton}>
+                                  <Text style={styles.resetButtonText}>Resetuj hasło</Text>
+                              </TouchableOpacity>
+                          </View>
+                      )}
+                  </View>
+              </ScrollView>
+          </KeyboardAvoidingView>
+      </SafeAreaView>
+  );
+};
+
+export default LogowanieEkran;
 
 const styles = StyleSheet.create({
+  safeArea: {
+      flex: 1,
+      backgroundColor: colors.background || '#F7F9FC',
+  },
+  keyboardAvoidingContainer: {
+      flex: 1,
+  },
   scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },  
+      flexGrow: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 30,
+  },
   logo: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: colors.darkYellow,
-    marginBottom: 30,
+      fontSize: width * 0.12,
+      fontWeight: 'bold',
+      color: colors.darkYellow || '#FFA500',
+      marginBottom: 30,
+      textAlign: 'center',
   },
   formCard: {
-    backgroundColor: '#fff',
-    padding: 25,
-    borderRadius: 20,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
+      backgroundColor: colors.cardBackground || '#FFFFFF',
+      padding: 25,
+      borderRadius: 20,
+      width: '100%',
+      maxWidth: 400,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 5 },
+      shadowOpacity: 0.1,
+      shadowRadius: 15,
+      elevation: 8,
+      marginBottom: 30,
+  },
+  cardTitle: {
+      fontSize: 22,
+      fontWeight: '600',
+      color: colors.darkFont || '#333333',
+      marginBottom: 20,
+      textAlign: 'center',
   },
   input: {
-    backgroundColor: '#F4F4F4',
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 15,
-    fontSize: 12,
-    color: '#000',
+      backgroundColor: colors.inputBackground || '#F4F4F8',
+      paddingVertical: Platform.OS === 'ios' ? 15 : 12,
+      paddingHorizontal: 15,
+      borderRadius: 10,
+      marginBottom: 15,
+      fontSize: 16,
+      color: colors.inputText || '#000000',
+      borderWidth: 1,
+      borderColor: colors.inputBorder || '#E0E0E0', 
   },
   loginButton: {
-    backgroundColor: '#2ecc71',
-    paddingVertical: 15,
-    borderRadius: 50,
-    alignItems: 'center',
-    marginBottom: 10,
+      backgroundColor: colors.primaryAction || '#2ecc71', 
+      paddingVertical: 15,
+      borderRadius: 25,
+      alignItems: 'center',
+      marginBottom: 15,
+      shadowColor: colors.primaryAction || '#2ecc71',
+      shadowOffset: { width: 0, height: 4},
+      shadowOpacity: 0.3,
+      shadowRadius: 5,
+      elevation: 4,
   },
   loginButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+      color: colors.primaryActionText || '#FFFFFF',
+      fontSize: 16,
+      fontWeight: 'bold',
   },
-  resetPasswordButton: {
-    marginTop: 5,
-    alignItems: 'center',
+  forgotPasswordButton: {
+      alignSelf: 'center',
+      paddingVertical: 8,
   },
-  resetPasswordText: {
-    color: colors.fontEN,
-    fontSize: 14,
-    textDecorationLine: 'underline',
+  forgotPasswordText: {
+      color: colors.linkText || colors.fontEN || '#007AFF',
+      fontSize: 14,
   },
-  resetPasswordContainer: {
-    marginTop: 15,
+  resetPasswordSection: {
+      marginTop: 20,
+      borderTopWidth: 1,
+      borderTopColor: colors.separator || '#EEEEEE',
+      paddingTop: 20,
+  },
+  resetInput: {
+      marginBottom: 10,
   },
   resetButton: {
-    backgroundColor: '#FF9500',
-    paddingVertical: 12,
-    borderRadius: 50,
-    alignItems: 'center',
-    marginTop: 10,
+      backgroundColor: colors.secondaryAction || '#FF9500',
+      paddingVertical: 12,
+      borderRadius: 25,
+      alignItems: 'center',
+      marginTop: 10,
   },
   resetButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  cancelButton: {
-    marginTop: 10,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: colors.darkFont,
-    fontSize: 14,
-    textDecorationLine: 'underline',
+      color: colors.secondaryActionText || '#FFFFFF',
+      fontWeight: 'bold',
+      fontSize: 15,
   },
   registerContainer: {
-    marginTop: 30,
-    alignItems: 'center',
+      marginTop: 20,
+      alignItems: 'center',
+      paddingBottom: 20,
   },
   registerText: {
-    color: colors.darkFont,
-    fontSize: 14,
-    marginTop: 10,
+      color: colors.secondaryText || colors.darkFont || '#555555',
+      fontSize: 14,
+      marginBottom: 10,
   },
   registerButton: {
-    backgroundColor: colors.fontEN,
-    paddingVertical: 15,
-    borderRadius: 50,
-    alignItems: 'center',
-    alignSelf: 'center',
-    marginTop: 20,
-    width: 150,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 5,
+      backgroundColor: colors.tertiaryAction || colors.fontEN || '#007AFF', 
+      paddingVertical: 15,
+      paddingHorizontal: 30,
+      borderRadius: 25,
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 3,
   },
   registerButtonText: {
-    color: colors.lightWhite,
-    fontSize: 16,
-    fontWeight: 'bold',
+      color: colors.tertiaryActionText || colors.lightWhite || '#FFFFFF',
+      fontSize: 16,
+      fontWeight: 'bold',
   },
 });

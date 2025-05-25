@@ -1,14 +1,16 @@
 import React from 'react'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
-import DziekanatEkran from '../ekrany/DziekanatEkran';
-import StudentOcenyEkran from '../ekrany/StudentOcenyEkran';
-import ProwadzacyPrzedmiotyEkran from '../ekrany/ProwadzacyPrzedmiotyEkran';
+import PrzedmiotyNavigation from '../ekrany/DziekanatPrzedmioty/PrzedmiotyNavigation';
 import { FontAwesome } from '@expo/vector-icons';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import Wylogowanie from '../ekrany/Wylogowanie';
+import DziekUzytNavigation from '../ekrany/DziekanatUzytkownicy/DziekUzytNavigation';
+import GrupyNavigation from '../ekrany/DziekanatGrupy/GrupyNavigation';
 
 const iconsName = {
-    'DziekanatEkran':'plus-square-o',
+    'DziekanatUzytkownicy':'users',
+    'PrzedmiotyNavigation':'book',
+    'GrupyNavigation':'plus-square-o',
     'StudentOcenyEkran':'graduation-cap',
     'ProwadzacyPrzedmiotyEkran':'user',
     'Wylogowanie':'sign-out',
@@ -51,9 +53,9 @@ const DziekanatNavigation = () => {
 
     return (
         <Tab.Navigator screenOptions={screenOptions}>
-            <Tab.Screen name="DziekanatEkran" component={DziekanatEkran} />
-            <Tab.Screen name="StudentOcenyEkran" component={StudentOcenyEkran} />
-            <Tab.Screen name="ProwadzacyPrzedmiotyEkran" component={ProwadzacyPrzedmiotyEkran} />
+            <Tab.Screen name="DziekanatUzytkownicy" component={DziekUzytNavigation} />
+            <Tab.Screen name="GrupyNavigation" component={GrupyNavigation} />
+            <Tab.Screen name="PrzedmiotyNavigation" component={PrzedmiotyNavigation} />
             <Tab.Screen name="Wylogowanie" component={Wylogowanie} />
         </Tab.Navigator>
       
