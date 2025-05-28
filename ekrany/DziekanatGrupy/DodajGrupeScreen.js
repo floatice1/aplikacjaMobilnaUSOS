@@ -18,15 +18,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import localStyles from './styles';
 import { api } from '../../serwisy/api';
 import AutocompleteInput from 'react-native-autocomplete-input';
+import { useGroupFormData } from '../../hooks/useGroupFormData';
 
 export default function DodajGrupeScreen({ navigation }) {
     const [name, setName] = useState('');
     const [subjectId, setSubjectId] = useState('');
     const [lecturerId, setLecturerId] = useState('');
     const [groupType, setGroupType] = useState('LAB');
-    const [subjects, setSubjects] = useState([]);
-    const [lecturers, setLecturers] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+
+    const {
+        subjects,
+        lecturers,
+        isLoading,
+        error,
+    } = useGroupFormData();
 
     const [subjectQuery, setSubjectQuery] = useState('');
     const [lecturerQuery, setLecturerQuery] = useState('');
@@ -34,30 +39,6 @@ export default function DodajGrupeScreen({ navigation }) {
     const [filteredLecturers, setFilteredLecturers] = useState([]);
     const [hideSubjectResults, setHideSubjectResults] = useState(true);
     const [hideLecturerResults, setHideLecturerResults] = useState(true);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setIsLoading(true);
-                const subjectsResponse = await api.get('przedmioty/');
-                setSubjects(subjectsResponse || []);
-
-                const usersResponse = await api.get('uzytkowniki/');
-                if (usersResponse) {
-                    const filtered = usersResponse.filter(user => user.role === 'wykladowca');
-                    setLecturers(filtered);
-                } else {
-                    setLecturers([]);
-                }
-            } catch (error) {
-                console.error("Nie udało się pobrać danych:", error);
-                Alert.alert("Błąd", "Nie udało się pobrać listy przedmiotów lub wykładowców.");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchData();
-    }, []);
 
     const findSubject = (query) => {
         if (query === '') {

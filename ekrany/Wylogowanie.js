@@ -1,30 +1,21 @@
 import React from 'react';
-import { View, Text, Alert, StyleSheet, TouchableOpacity,Dimensions } from 'react-native';
+import { View, Text, Alert, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import colors from '../assets/colors/colors';
-import { getAuth } from 'firebase/auth';
 import { useNavigation } from '@react-navigation/native'; 
+import { handleLogout as performLogout } from '../utils/authUtils';
+
 const window = Dimensions.get("window");
 
 const Wylogowanie = () => {
-    const auth = getAuth();
     const navigation = useNavigation();
 
-    const handleLogout = () => {
-        auth.signOut()
-          .then(() => {
-            console.log('Użytkownik wylogował się pomyślnie.');
-            navigation.replace('Login');
-          })
-          .catch((error) => {
-            Alert.alert('Błąd', 'Nie udało się wylogować.');
-            console.log(error);
-          });
+    const onLogoutPress = () => {
+        performLogout(navigation);
     };
 
-    
   return (
     <View style={styles.container}>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <TouchableOpacity style={styles.logoutButton} onPress={onLogoutPress}>
           <Text style={styles.logoutButtonText}>Wyloguj</Text>
         </TouchableOpacity>
     </View>

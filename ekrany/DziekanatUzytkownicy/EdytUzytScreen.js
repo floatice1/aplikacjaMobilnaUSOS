@@ -19,7 +19,7 @@ export default function EdytUzytScreen({ route, navigation }) {
     const fetchUserData = async () => {
       try {
         setIsLoading(true);
-        const response = await api.get(`uzytkowniki/${userId}`);
+        const response = await api.get(`uzytkownicy/${userId}`);
         setImie(response.name || '');
         setEmail(response.email || '');
         setRola(response.role || '');
@@ -40,7 +40,7 @@ export default function EdytUzytScreen({ route, navigation }) {
 
   const handleSaveChanges = async () => {
     try {
-      await api.put(`uzytkowniki/${userId}`, {
+      await api.put(`uzytkownicy/${userId}`, {
         imie: imie,
         rola: rola,
         email: email,

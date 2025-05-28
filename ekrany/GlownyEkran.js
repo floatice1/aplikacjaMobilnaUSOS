@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, 
   Text, 
@@ -7,131 +7,68 @@ import {
   Alert, 
   TouchableOpacity, 
   SafeAreaView,
-  Dimensions
+  Dimensions,
+  ActivityIndicator
 } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { useNavigation } from '@react-navigation/native'; 
+import { useNavigation, useFocusEffect } from '@react-navigation/native'; // Dodano useFocusEffect
 import colors from '../assets/colors/colors';
-import { api } from '../serwisy/api';
-import { MaterialIcons } from '@expo/vector-icons'; // Ikony do rozwijania
+import SubjectListItem from './GlownyEkranComponents/SubjectListItem'; 
+import useStudentDashboardData from '../hooks/useStudentDashboardData'; // Import hooka
+import { handleLogout as performLogout } from '../utils/authUtils'; // Zaimportuj funkcję wylogowania
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const GlownyEkran = () => {
-  const [subjectsWithGroups, setSubjectsWithGroups] = useState([]);
+  const { subjectsWithGroups, isLoading, error, refreshData } = useStudentDashboardData();
   const [expandedSubjectId, setExpandedSubjectId] = useState(null);
+  
   const auth = getAuth();
-  const currentUser = auth.currentUser;
   const navigation = useNavigation();
 
-  useEffect(() => {
-    if (currentUser) {
-      fetchStudentData(currentUser.uid);
-    }
-  }, [currentUser]);
-
-  const fetchStudentData = async (studentId) => {
-    try {
-      const groupsResponse = await api.get('grupy/');
-      const allGradesResponse = await api.get('oceny/');
-      const allSubjectsResponse = await api.get('przedmioty/');
-      const allUsersResponse = await api.get('uzytkowniki/');
-
-      const studentGroups = groupsResponse.filter(group => 
-        group.studentsIds && group.studentsIds.includes(studentId)
-      );
-
-      const enrichedGroups = studentGroups.map(group => {
-        const subjectDetails = allSubjectsResponse.find(s => s.id === group.subjectId);
-        const lecturerDetails = allUsersResponse.find(u => u.uid === group.lecturerId);
-        
-        const groupGrades = allGradesResponse
-          .filter(grade => grade.studentId === studentId && grade.groupId === group.id)
-          .map(grade => grade.value);
-
-        return {
-          ...group,
-          subjectName: subjectDetails ? subjectDetails.name : 'Nieznany przedmiot',
-          lecturerName: lecturerDetails ? `${lecturerDetails.name}` : 'Nieznany prowadzący',
-          grades: groupGrades,
-          groupType: group.name.includes('_WYK') ? 'Wykład' : group.name.includes('_CW') ? 'Ćwiczenia' : group.name.includes('_LAB') ? 'Laboratoria' : group.name.includes('_PRO')? 'Projekt' : 'Nieznany typ zajęć',
-        };
-      });
-
-      // Grupuj grupy po subjectId
-      const groupedBySubject = enrichedGroups.reduce((acc, group) => {
-        const subjectId = group.subjectId;
-        if (!acc[subjectId]) {
-          acc[subjectId] = {
-            id: subjectId,
-            name: group.subjectName,
-            groups: []
-          };
-        }
-        acc[subjectId].groups.push(group);
-        return acc;
-      }, {});
-
-      setSubjectsWithGroups(Object.values(groupedBySubject));
-
-    } catch (err) {
-      Alert.alert('Błąd podczas pobierania danych', err.message);
-      console.error('Błąd:', err);
-    }
-  };
+  useFocusEffect(
+    React.useCallback(() => {
+      refreshData();
+    }, [refreshData])
+  );
 
   const toggleSubjectExpansion = (subjectId) => {
     setExpandedSubjectId(expandedSubjectId === subjectId ? null : subjectId);
   };
 
-  const renderGroupItem = (group) => {
-    return (
-      <View key={group.id} style={styles.groupCard}>
-        <Text style={styles.groupCardTitle}>{group.name}</Text>
-        <Text style={styles.groupInfo}>Typ zajęć: {group.groupType}</Text>
-        <Text style={styles.groupInfo}>Prowadzący: {group.lecturerName}</Text>
-        <View style={styles.gradeRow}>
-          {group.grades && group.grades.length > 0 ? (
-            group.grades.map((grade, index) => (
-              <View key={index} style={styles.gradeBox}>
-                <Text style={styles.gradeText}>{grade}</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.noGradesText}>Brak ocen</Text>
-          )}
-        </View>
-      </View>
-    );
-  };
-
   const renderSubjectItem = ({ item: subject }) => {
-    const isExpanded = expandedSubjectId === subject.id;
     return (
-      <View style={styles.subjectContainer}>
-        <TouchableOpacity onPress={() => toggleSubjectExpansion(subject.id)} style={styles.subjectHeader}>
-          <Text style={styles.subjectTitle}>{subject.name}</Text>
-          <MaterialIcons name={isExpanded ? 'expand-less' : 'expand-more'} size={24} color={colors.primary} />
-        </TouchableOpacity>
-        {isExpanded && (
-          <View style={styles.groupsListContainer}>
-            {subject.groups.map(group => renderGroupItem(group))}
-          </View>
-        )}
-      </View>
+      <SubjectListItem 
+        subject={subject} 
+        isExpanded={expandedSubjectId === subject.id}
+        onToggleExpansion={toggleSubjectExpansion}
+      />
     );
   };
 
-  const handleLogout = () => {
-    auth.signOut()
-      .then(() => {
-        console.log('Użytkownik wylogował się pomyślnie.');
-        navigation.replace('Login');
-      })
-      .catch((error) => {
-        Alert.alert('Błąd', 'Nie udało się wylogować.');
-      });
+  const onLogoutPress = () => {
+    performLogout(navigation);
   };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safeAreaCentered}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Ładowanie danych...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.safeAreaCentered}>
+        <Text style={styles.errorText}>Wystąpił błąd podczas ładowania danych.</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={refreshData}>
+          <Text style={styles.retryButtonText}>Spróbuj ponownie</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}> 
@@ -145,37 +82,46 @@ const GlownyEkran = () => {
             renderItem={renderSubjectItem}
             keyExtractor={item => item.id.toString()}
             contentContainerStyle={styles.listContainer}
+            onRefresh={refreshData}
+            refreshing={isLoading}
           />
         ) : (
           <Text style={styles.noGroupsText}>Nie jesteś zapisany/a do żadnych grup.</Text>
         )}
 
-<View style={{alignItems:'center', paddingVertical:20}}>
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutButtonText}>Wyloguj</Text>
-      </TouchableOpacity>
-    </View>
+        <View style={{alignItems:'center', paddingVertical:20}}>
+          <TouchableOpacity style={styles.logoutButton} onPress={onLogoutPress}>
+            <Text style={styles.logoutButtonText}>Wyloguj</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: { // Styl dla SafeAreaView
+  safeArea: {
     flex: 1,
     backgroundColor: colors.background,
   },
+  safeAreaCentered: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
   container: {
     flex: 1,
-    // backgroundColor: colors.background, // Przeniesiono do safeArea
     paddingHorizontal: 10,
   },
   appTitle: {
-    fontSize: width * 0.12, // Responsive font size
-      fontWeight: 'bold',
-      color: colors.darkYellow || '#FFA500', 
-      marginBottom: 30,
-      textAlign: 'center',
+    fontSize: width * 0.12,
+    fontWeight: 'bold',
+    color: colors.darkYellow || '#FFA500', 
+    marginBottom: 30,
+    textAlign: 'center',
+    marginTop: 20,
   },
   sectionSubtitle: {
     fontSize: 18,
@@ -186,97 +132,43 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingBottom: 20,
   },
-  subjectContainer: {
-    backgroundColor: colors.lightWhite,
-    borderRadius: 10,
-    marginBottom: 15,
-    borderColor: colors.grey,
-    borderWidth: 1,
-    overflow: 'hidden', // Aby cienie i borderRadius działały poprawnie
-  },
-  subjectHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
-    backgroundColor: colors.white, // Lekko inne tło dla nagłówka przedmiotu
-  },
-  subjectTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.primary,
-  },
-  groupsListContainer: {
-    paddingHorizontal: 15,
-    paddingBottom: 15, // Dodano padding na dole listy grup
-  },
-  groupCard: { // Zmieniono z 'card' na 'groupCard' dla jasności
-    backgroundColor: colors.white, // Tło dla karty grupy wewnątrz przedmiotu
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 10, // Margines górny dla pierwszej karty grupy
-    borderWidth: 1,
-    borderColor: colors.lightGrey, // Lżejsza ramka dla grupy
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  groupCardTitle: { // Styl dla tytułu grupy wewnątrz karty
-    fontSize: 16,
-    fontWeight: '600', // Nieco mniej pogrubiony niż tytuł przedmiotu
-    color: colors.darkFont,
-    marginBottom: 6,
-  },
-  groupInfo: {
-    fontSize: 14,
-    color: colors.darkFont,
-    marginBottom: 5,
-    lineHeight: 20,
-  },
-  gradeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 10,
-    gap: 8,
-  },
-  gradeBox: {
-    backgroundColor: colors.lightGrey,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-    marginRight: 5,
-    marginBottom: 5,
-  },
-  gradeText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.darkFont,
-  },
-  noGradesText: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    color: colors.mediumGrey,
-    marginTop: 5,
-  },
   noGroupsText: {
     textAlign: 'center',
     fontSize: 16,
     color: colors.mediumGrey,
     marginTop: 50,
   },
-  
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: colors.primary,
+  },
+  errorText: {
+    fontSize: 16,
+    color: 'red',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  retryButtonText: {
+    color: colors.white,
+    fontSize: 16,
+  },
   logoutButton:{
-    width:window.width*0.45,
+    width: width * 0.45,
     backgroundColor: '#FF3B30',
     paddingVertical: 15,
     paddingHorizontal: 25,
     borderRadius: 50,
     shadowColor: '#000',
     shadowOffset: {
-    width: 0,
-    height: 5,
+      width: 0,
+      height: 5,
     },
     shadowOpacity: 0.25,
     shadowRadius: 6,

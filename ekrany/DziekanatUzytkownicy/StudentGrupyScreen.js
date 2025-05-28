@@ -35,7 +35,7 @@ export default function StudentGrupyScreen({ route, navigation }) {
                 subjectName = subjectRes?.name || 'Brak';
             }
             if (group.lecturerId) {
-                const lecturerRes = await api.get(`uzytkowniki/${group.lecturerId}`);
+                const lecturerRes = await api.get(`uzytkownicy/${group.lecturerId}`);
                 lecturerName = lecturerRes?.name || 'Brak';
             }
             
@@ -110,8 +110,7 @@ export default function StudentGrupyScreen({ route, navigation }) {
     const handleGradeChange = async (item) => {
         Alert.prompt(
             "Zmień ocenę",
-            `Wprowadź nową ocenę dla ${studentName} z grupy ${item.name}:\nObecna ocena: ${item.ocena || 'Brak'}`,
-            [
+            `Wprowadź nową ocenę dla ${studentName} z grupy ${item.name}:\nObecna ocena: ${item.ocena || 'Brak'}`,[
                 {
                     text: "Anuluj",
                     style: "cancel"
@@ -120,7 +119,13 @@ export default function StudentGrupyScreen({ route, navigation }) {
                     text: "Zapisz",
                     onPress: async (nowaOcenaValue) => {
                         if (nowaOcenaValue !== null && nowaOcenaValue.trim() !== '') {
-                            const wartoscOceny = nowaOcenaValue.trim();
+                            const wartoscOceny = parseFloat(nowaOcenaValue.trim());
+
+                            if (isNaN(wartoscOceny) || wartoscOceny < 2 || wartoscOceny > 5) {
+                                Alert.alert("Błąd", "Ocena musi być liczbą od 2 do 5.");
+                                return;
+                            }
+
                             try {
                                 const payload = {
                                     studentId: studentId,
@@ -151,12 +156,14 @@ export default function StudentGrupyScreen({ route, navigation }) {
                                 console.error("Błąd podczas zapisu oceny:", error);
                                 Alert.alert("Błąd", `Nie udało się zapisać oceny. ${error.message || ''}`);
                             }
+                        } else if (nowaOcenaValue.trim() === '') {
+                            Alert.alert("Błąd", "Ocena nie może być pusta.");
                         }
                     }
                 }
             ],
             "plain-text",
-            item.ocena || ''
+            item.ocena ? String(item.ocena) : '' // Upewnij się, że wartość początkowa jest stringiem
         );
     };
 

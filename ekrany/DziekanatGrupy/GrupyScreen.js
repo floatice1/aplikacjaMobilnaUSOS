@@ -6,75 +6,25 @@ import { TextInput } from 'react-native-gesture-handler';
 import { useFocusEffect } from '@react-navigation/native';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import colors from '../../assets/colors/colors';
+import { useGroupData } from '../../hooks/useGroupData';
+import GroupListItem from './GroupListItem';
 
 export default function GrupyScreen({ navigation }) {
-    const [groupsDetails, setGroupsDetails] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const {
+        groupsDetails,
+        isLoading,
+        fetchData,
+        removeGroupFromState 
+    } = useGroupData();
+
     const [searchQuery, setSearchQuery] = useState('');
     const [filteredGroups, setFilteredGroups] = useState([]);
     const [expandedItemId, setExpandedItemId] = useState(null);
 
-    const fetchGroupDetails = async (group) => {
-        let subjectName = 'Brak';
-        let lecturerName = 'Brak';
-        let groupType = 'Nieznany';
-        let studentCount = 0;
-
-        try {
-            if (group.subjectId) {
-                const subjectRes = await api.get(`przedmioty/${group.subjectId}`);
-                subjectName = subjectRes?.name || 'Brak';
-            }
-            if (group.lecturerId) {
-                const lecturerRes = await api.get(`uzytkowniki/${group.lecturerId}`);
-                lecturerName = lecturerRes ? `${lecturerRes.name || ''}`.trim() : 'Brak';
-            }
-        } catch (e) {
-            console.error(`Nie udało się pobrać szczegółów dla grupy ${group.id}:`, e);
-        }
-
-        if (group.name) {
-            if (group.name.endsWith('_LAB')) groupType = 'Laboratorium';
-            else if (group.name.endsWith('_PRO')) groupType = 'Projekt';
-            else if (group.name.endsWith('_WYK')) groupType = 'Wykład';
-            else if (group.name.endsWith('_CW')) groupType = 'Ćwiczenia';
-        }
-
-        if (group.studentsIds && Array.isArray(group.studentsIds)) {
-            studentCount = group.studentsIds.length;
-        }
-
-        return {
-            ...group,
-            subjectName,
-            lecturerName,
-            groupType,
-            studentCount
-        };
-    };
-
     useFocusEffect(
         useCallback(() => {
-            const fetchGroupsAndDetails = async () => {
-                try {
-                    setIsLoading(true);
-                    const response = await api.get('grupy/');
-                    const sortedGroups = response.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-                    
-                    const detailedGroups = await Promise.all(
-                        sortedGroups.map(group => fetchGroupDetails(group))
-                    );
-                    setGroupsDetails(detailedGroups);
-                } catch (e) {
-                    console.error("Nie udało się pobrać grup lub ich szczegółów:", e);
-                    Alert.alert("Błąd", "Nie udało się pobrać danych grup.");
-                } finally {
-                    setIsLoading(false);
-                }
-            };
-
-            fetchGroupsAndDetails();
-        }, [])
+            fetchData();
+        }, [fetchData])
     );
 
     useEffect(() => {
@@ -101,95 +51,12 @@ export default function GrupyScreen({ navigation }) {
         navigation.navigate('ZarzadzajStudentamiGrupyScreen', { groupId, groupName, action: 'remove' });
     };
 
-    const renderGroupItem = ({ item }) => {
-        const isExpanded = item.id === expandedItemId;
+    const handleToggleExpand = (itemId) => {
+        setExpandedItemId(prevId => (prevId === itemId ? null : itemId));
+    };
 
-        const toggleExpand = () => {
-            setExpandedItemId(isExpanded ? null : item.id);
-        };
-
-        const handleEdit = (groupId) => {
-            navigation.navigate('EdytujGrupeScreen', { id: groupId });
-        };
-
-        const handleDelete = (groupId, groupName) => {
-            Alert.alert(
-                "Potwierdź usunięcie",
-                `Czy na pewno chcesz usunąć grupę "${groupName}"?`,
-                [
-                    {
-                        text: "Anuluj",
-                        onPress: () => console.log("Anulowano usuwanie"),
-                        style: "cancel"
-                    },
-                    { 
-                        text: "Usuń", 
-                        onPress: async () => {
-                            console.log('Usuń grupę:', groupId);
-                            try {
-                                await api.delete(`grupy/${groupId}`);
-                                setGroupsDetails(prevDetails => prevDetails.filter(group => group.id !== groupId));
-                            } catch (error) {
-                                console.error("Nie udało się usunąć grupy:", error);
-                                Alert.alert(
-                                    "Błąd",
-                                    "Nie udało się usunąć grupy. Spróbuj ponownie później."
-                                );
-                            }
-                        },
-                        style: "destructive" 
-                    }
-                ],
-                { cancelable: false }
-            );
-        };
-
-        return (
-            <TouchableOpacity
-                style={localStyles.userItem}
-                onPress={toggleExpand}
-            >
-                <Text style={localStyles.userName}>{item.name}</Text>
-                {isExpanded && (
-                    <View style={localStyles.flexContainer}>
-                    <View style={localStyles.expandedUserInfo}>
-                        <View style={localStyles.userInfoText}>
-                            <View style={localStyles.userInfoRow}>
-                                <Text style={localStyles.userInfoText}>Typ: {item.groupType}</Text>
-                            </View>
-                            <View style={localStyles.userInfoRow}>
-                                <Text style={localStyles.userInfoText}>Przedmiot: {item.subjectName}</Text>
-                            </View>
-                            <View style={localStyles.userInfoRow}>
-                                <Text style={localStyles.userInfoText}>Wykładowca: {item.lecturerName}</Text>
-                            </View>
-                            <View style={localStyles.userInfoRow}>
-                                <Text style={localStyles.userInfoText}>Liczba studentów: {item.studentCount}</Text>
-                            </View>
-                        </View>
-                        <View style={localStyles.actionButtonsContainer}>
-                                <TouchableOpacity onPress={() => handleEdit(item.id)} style={localStyles.iconButton}>
-                                    <FontAwesome name="pencil" size={32} color={colors.background} />
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => handleDelete(item.id, item.name)} style={[localStyles.iconButton]}>
-                                    <FontAwesome name="trash" size={32} color="#2ecc71" />
-                                </TouchableOpacity>
-                        </View>
-                        
-                        
-                    </View>
-                    <View style={localStyles.studentActionButtonsContainer}>
-                        <TouchableOpacity onPress={() => handleAddStudentToGroup(item.id, item.name)} style={[localStyles.iconButton, localStyles.StudentButton]}>
-                            <MaterialIcons name="person-add" size={32} color={colors.primary} /> 
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => handleRemoveStudentFromGroup(item.id, item.name)} style={[localStyles.iconButton, localStyles.StudentButton]}>
-                            <MaterialIcons name="person-remove" size={32} color={colors.danger} /> 
-                        </TouchableOpacity>
-                    </View>
-                </View>
-                )}
-            </TouchableOpacity>
-        );
+    const handleEditGroup = (groupId) => {
+        navigation.navigate('EdytujGrupeScreen', { id: groupId });
     };
 
     if (isLoading) {
@@ -218,7 +85,17 @@ export default function GrupyScreen({ navigation }) {
                     ) : (
                     <FlatList
                         data={filteredGroups}
-                        renderItem={renderGroupItem}
+                        renderItem={({ item }) => (
+                            <GroupListItem
+                                item={item}
+                                isExpanded={item.id === expandedItemId}
+                                onToggleExpand={() => handleToggleExpand(item.id)}
+                                onEdit={handleEditGroup}
+                                onDeleteGroup={removeGroupFromState}
+                                onAddStudent={handleAddStudentToGroup}
+                                onRemoveStudent={handleRemoveStudentFromGroup}
+                            />
+                        )}
                         keyExtractor={item => item.id}
                     />
                 )}

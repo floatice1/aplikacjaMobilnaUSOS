@@ -103,7 +103,7 @@ const localStyles = StyleSheet.create({
         paddingHorizontal: 15,
         paddingVertical: 10,
         borderRadius: 10,
-        marginBottom: 5,
+        marginBottom: 10,
         fontSize: 16,
         color: colors.inputText || '#000000',
         borderWidth: 1,

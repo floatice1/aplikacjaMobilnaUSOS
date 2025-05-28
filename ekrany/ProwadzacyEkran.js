@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, 
   Text, 
@@ -7,230 +7,137 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Dimensions,
-  SafeAreaView, // Dodano SafeAreaView
-  ScrollView,
-  FlatList
+  SafeAreaView,
+  FlatList,
+  ActivityIndicator // Dodaj ActivityIndicator
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { getAuth } from 'firebase/auth';
+// import { Picker } from '@react-native-picker/picker'; // Jeśli nie jest używany, można usunąć
+// import { getAuth } from 'firebase/auth'; // Już niepotrzebne bezpośrednio tutaj
 import colors from '../assets/colors/colors';
-import { useNavigation } from '@react-navigation/native'; 
-import { api } from '../serwisy/api';
+import { useNavigation, useFocusEffect } from '@react-navigation/native'; // Dodaj useFocusEffect
+// import { api } from '../serwisy/api'; // Już niepotrzebne bezpośrednio tutaj
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { handleLogout as performLogout } from '../utils/authUtils';
+import { useLecturerData } from '../hooks/useLecturerData'; // Import nowego hooka
+import LecturerSubjectListItem from './ProwadzacyEkranComponents/LecturerSubjectListItem'; // Import nowego komponentu
 
 const { width, height } = Dimensions.get('window');
 
 const ProwadzacyEkran = () => {
-  const [subjectsWithGroupsAndStudents, setSubjectsWithGroupsAndStudents] = useState([]);
+  const {
+    subjectsWithGroupsAndStudents,
+    isLoading,
+    error,
+    refreshData,
+    handleAddOrUpdateGrade // Zmieniona nazwa w hooku
+  } = useLecturerData();
+
   const [expandedSubjectId, setExpandedSubjectId] = useState(null);
   const [expandedGroupId, setExpandedGroupId] = useState(null);
   const [gradeToAdd, setGradeToAdd] = useState('');
   const [selectedStudentIdForGrade, setSelectedStudentIdForGrade] = useState('');
-  const [allGrades, setAllGrades] = useState([]); // Dodano stan do przechowywania wszystkich ocen
-
-  const auth = getAuth();
-  const currentUser = auth.currentUser;
+  
   const navigation = useNavigation();
 
-  const handleLogout = () => {
-    auth.signOut()
-      .then(() => {
-        console.log('Użytkownik wylogował się pomyślnie.');
-        navigation.replace('Login');
-      })
-      .catch((error) => {
-        Alert.alert('Błąd', 'Nie udało się wylogować.');
-        console.log(error);
-      });
-  };
+  useFocusEffect(
+    React.useCallback(() => {
+      refreshData();
+    }, [refreshData])
+  );
 
-  useEffect(() => {
-    if (currentUser) {
-      fetchLecturerData(currentUser.uid);
-    }
-  }, [currentUser]);
-
-  const fetchLecturerData = async (lecturerId) => {
-    try {
-      const allSubjects = await api.get('przedmioty/');
-      const allGroups = await api.get('grupy/');
-      const allUsers = await api.get('uzytkowniki/');
-      const fetchedGrades = await api.get('oceny/'); 
-      setAllGrades(fetchedGrades); 
-
-      // Najpierw mapujemy wszystkie przedmioty, aby znaleźć grupy prowadzącego
-      const processedSubjects = await Promise.all(allSubjects.map(async subject => {
-        const subjectGroups = allGroups.filter(group => group.subjectId === subject.id && group.lecturerId === lecturerId);
-
-        // Jeśli nie ma grup dla tego przedmiotu prowadzonych przez tego wykładowcę, zwracamy null lub obiekt z pustą tablicą grup
-        if (subjectGroups.length === 0) {
-          return {
-            id: subject.id,
-            name: subject.name,
-            groups: [], // Pusta tablica grup
-          };
-        }
-
-        const groupsWithStudents = await Promise.all(subjectGroups.map(async group => {
-          const studentsInGroup = group.studentsIds ? await Promise.all(group.studentsIds.map(async studentId => {
-            const studentData = allUsers.find(u => u.uid === studentId);
-            // Pobierz oceny dla tego studenta w tej grupie
-            const studentGradesObjects = fetchedGrades.filter(g => g.studentId === studentId && g.groupId === group.id);
-            return {
-              id: studentId,
-              name: studentData ? `${studentData.name} ${studentData.surname}` : 'Nieznany student',
-              email: studentData ? studentData.email : '',
-              grades: studentGradesObjects, // Przechowuj całe obiekty ocen
-            };
-          })) : [];
-          return {
-            ...group,
-            students: studentsInGroup,
-            groupType: group.name.includes('_WYK') ? 'Wykład' : group.name.includes('_CW') ? 'Ćwiczenia' : group.name.includes('_LAB') ? 'Laboratoria' : group.name.includes('_PRO')? 'Projekt' : 'Nieznany typ zajęć',
-          };
-        }));
-
-        return {
-          id: subject.id,
-          name: subject.name,
-          groups: groupsWithStudents,
-        };
-      }));
-
-      // Następnie filtrujemy te przedmioty, które mają co najmniej jedną grupę
-      const structuredData = processedSubjects.filter(subject => subject.groups.length > 0);
-
-      setSubjectsWithGroupsAndStudents(structuredData);
-    } catch (err) {
-      Alert.alert('Błąd', 'Nie udało się pobrać danych prowadzącego.');
-      console.error('Błąd pobierania danych:', err);
-    }
+  const onLogoutPress = () => {
+    performLogout(navigation);
   };
 
   const toggleSubjectExpansion = (subjectId) => {
     setExpandedSubjectId(expandedSubjectId === subjectId ? null : subjectId);
-    setExpandedGroupId(null); // Zwiń grupy przy zmianie przedmiotu
+    setExpandedGroupId(null); 
   };
 
   const toggleGroupExpansion = (groupId) => {
     setExpandedGroupId(expandedGroupId === groupId ? null : groupId);
   };
 
-  const handleAddGrade = async (studentId, groupId, subjectId) => {
-    if (!gradeToAdd) {
-      Alert.alert('Błąd', 'Wpisz ocenę.');
-      return;
-    }
-    const numericGrade = parseFloat(gradeToAdd);
-    if (isNaN(numericGrade) || numericGrade < 2 || numericGrade > 5 || !Number.isInteger(numericGrade * 2)) {
-        Alert.alert('Błąd', 'Ocena musi być liczbą od 2 do 5, z dokładnością do 0.5 (np. 2, 2.5, 3, 3.5, 4, 4.5, 5).');
-        return;
-    }
+  // Funkcja do obsługi zmiany tekstu oceny
+  const handleGradeInputChange = (studentId, text) => {
+    setSelectedStudentIdForGrade(studentId);
+    setGradeToAdd(text);
+  };
 
-    try {
-      const existingGrade = allGrades.find(g => g.studentId === studentId && g.groupId === groupId);
-
-      const payload = {
-        studentId: studentId,
-        grupaId: groupId, 
-        wystawionePrzez: currentUser.uid, 
-        wartoscOceny: numericGrade.toString(),
-      };
-
-      if (existingGrade) {
-        await api.put(`oceny/${existingGrade.id}`, payload);
-        Alert.alert('Sukces', 'Ocena została zaktualizowana.');
-      } else {
-        await api.post('oceny/', payload);
-        Alert.alert('Sukces', 'Ocena została dodana.');
-      }
-      
+  // Funkcja do dodawania/aktualizacji oceny (używa funkcji z hooka)
+  const handleAddGradePress = async (studentId, groupId) => {
+    const success = await handleAddOrUpdateGrade(studentId, groupId, gradeToAdd);
+    if (success) {
       setGradeToAdd('');
       setSelectedStudentIdForGrade('');
-      fetchLecturerData(currentUser.uid); 
-    } catch (error) {
-      console.error('Błąd podczas zapisywania oceny:', error);
-      Alert.alert('Błąd', 'Nie udało się zapisać oceny. ' + (error.response?.data?.detail || error.message));
+      // refreshData() jest już w hooku
     }
   };
 
-
-  const renderStudentItem = (student, group) => {
-    // Znajdź oceny studenta dla konkretnej grupy
-    const currentGroupGrades = student.grades.filter(grade => grade.groupId === group.id);
-    const gradeValues = currentGroupGrades.map(g => g.value);
-
-    return (
-    <View key={student.id} style={styles.studentCard}>
-      <Text style={styles.studentName}>{student.name} ({student.email})</Text>
-      {gradeValues.length > 0 ? (
-        <Text style={styles.gradesText}>Istniejące oceny: {gradeValues.join(', ')}</Text>
-      ) : (
-        <Text style={styles.gradesText}>Brak ocen.</Text>
-      )}
-      <View style={styles.gradeInputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Wpisz ocenę (2-5)"
-          placeholderTextColor={colors.mediumGrey}
-          value={selectedStudentIdForGrade === student.id ? gradeToAdd : ''}
-          onChangeText={(text) => {
-            setSelectedStudentIdForGrade(student.id);
-            setGradeToAdd(text);
-          }}
-          keyboardType="numeric"
-        />
-        <TouchableOpacity
-          style={[styles.button, styles.addGradeButton]}
-          onPress={() => handleAddGrade(student.id, group.id, group.subjectId)}
-        >
-          <Text style={styles.buttonText}>Dodaj</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );}
+  // Ta funkcja została zastąpiona przez nowy komponent StudentGradeItem
+  // const renderStudentItem = (student, group) => { ... };
 
   const renderGroupItem = (group) => {
     const isExpanded = expandedGroupId === group.id;
     return (
-      <View key={group.id} style={styles.groupContainer}>
-        <TouchableOpacity onPress={() => toggleGroupExpansion(group.id)} style={styles.groupHeader}>
-          <Text style={styles.groupTitle}>{group.name} ({group.groupType})</Text>
-          <MaterialIcons name={isExpanded ? 'expand-less' : 'expand-more'} size={24} color={colors.primary} />
-        </TouchableOpacity>
-        {isExpanded && (
-          <View style={styles.studentsListContainer}>
-            {group.students && group.students.length > 0 ? (
-              group.students.map(student => renderStudentItem(student, group))
-            ) : (
-              <Text style={styles.noStudentsText}>Brak studentów w tej grupie.</Text>
-            )}
-          </View>
-        )}
-      </View>
-    );
+    <View key={group.id} style={styles.groupContainer}>
+      <TouchableOpacity onPress={() => toggleGroupExpansion(group.id)} style={styles.groupHeader}>
+        <Text style={styles.groupTitle}>{group.name} ({group.groupType})</Text>
+        <MaterialIcons name={isExpanded ? 'expand-less' : 'expand-more'} size={24} color={colors.primary} />
+      </TouchableOpacity>
+      {isExpanded && (
+        <View style={styles.studentsListContainer}>
+          {group.students && group.students.length > 0 ? (
+            group.students.map(student => renderStudentItem(student, group))
+          ) : (
+            <Text style={styles.noStudentsText}>Brak studentów w tej grupie.</Text>
+          )}
+        </View>
+      )}
+    </View>
+  );
   };
 
   const renderSubjectItem = ({ item: subject }) => {
     const isExpanded = expandedSubjectId === subject.id;
     return (
-      <View style={styles.subjectContainer}>
-        <TouchableOpacity onPress={() => toggleSubjectExpansion(subject.id)} style={styles.subjectHeader}>
-          <Text style={styles.subjectTitle}>{subject.name}</Text>
-          <MaterialIcons name={isExpanded ? 'expand-less' : 'expand-more'} size={24} color={colors.primary} />
-        </TouchableOpacity>
-        {isExpanded && (
-          <View style={styles.groupsListContainer}>
-            {subject.groups && subject.groups.length > 0 ? (
-              subject.groups.map(group => renderGroupItem(group))
-            ) : (
-              <Text style={styles.noGroupsText}>Brak grup dla tego przedmiotu.</Text>
-            )}
-          </View>
-        )}
-      </View>
-    );
+    <View style={styles.subjectContainer}>
+      <TouchableOpacity onPress={() => toggleSubjectExpansion(subject.id)} style={styles.subjectHeader}>
+        <Text style={styles.subjectTitle}>{subject.name}</Text>
+        <MaterialIcons name={isExpanded ? 'expand-less' : 'expand-more'} size={24} color={colors.primary} />
+      </TouchableOpacity>
+      {isExpanded && (
+        <View style={styles.groupsListContainer}>
+          {subject.groups && subject.groups.length > 0 ? (
+            subject.groups.map(group => renderGroupItem(group))
+          ) : (
+            <Text style={styles.noGroupsText}>Brak grup dla tego przedmiotu.</Text>
+          )}
+        </View>
+      )}
+    </View>
+  );
   };
+
+  if (isLoading && subjectsWithGroupsAndStudents.length === 0) { // Pokaż ładowanie tylko przy pierwszym ładowaniu
+    return (
+      <SafeAreaView style={styles.safeAreaCentered}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Ładowanie danych...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.safeAreaCentered}>
+        <Text style={styles.errorText}>Wystąpił błąd podczas ładowania danych.</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={refreshData}>
+          <Text style={styles.retryButtonText}>Spróbuj ponownie</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -241,16 +148,32 @@ const ProwadzacyEkran = () => {
         {subjectsWithGroupsAndStudents.length > 0 ? (
           <FlatList
             data={subjectsWithGroupsAndStudents}
-            renderItem={renderSubjectItem}
+            renderItem={({ item: subject }) => (
+              <LecturerSubjectListItem 
+                subject={subject}
+                isExpanded={expandedSubjectId === subject.id}
+                onToggleExpansion={toggleSubjectExpansion}
+                expandedGroupId={expandedGroupId}
+                onToggleGroupExpansion={toggleGroupExpansion}
+                // renderStudentItem={renderStudentItem} // Usuwamy to
+                // Przekazujemy nowe propsy i funkcje obsługi
+                gradeToAdd={gradeToAdd}
+                onGradeChange={handleGradeInputChange}
+                onAddGrade={handleAddGradePress}
+                selectedStudentIdForGrade={selectedStudentIdForGrade}
+              />
+            )}
             keyExtractor={item => item.id.toString()}
             contentContainerStyle={styles.listContainer}
+            onRefresh={refreshData} 
+            refreshing={isLoading} 
           />
         ) : (
-          <Text style={styles.noDataText}>Nie prowadzisz żadnych przedmiotów lub brak danych.</Text>
+          !isLoading && <Text style={styles.noDataText}>Nie prowadzisz żadnych przedmiotów lub brak danych.</Text>
         )}
 
 <View style={{alignItems:'center', paddingVertical:20}}>
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+      <TouchableOpacity onPress={onLogoutPress} style={styles.logoutButton}>
         <Text style={styles.logoutButtonText}>Wyloguj</Text>
       </TouchableOpacity>
     </View>
@@ -284,111 +207,37 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingBottom: 20,
   },
-  subjectContainer: {
-    backgroundColor: colors.lightWhite,
-    borderRadius: 10,
-    marginBottom: 15,
-    borderColor: colors.grey,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  subjectHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  // Styles for subjectContainer, subjectHeader, subjectTitle, groupsListContainer, noGroupsText,
+  // groupContainer, groupHeader, groupTitle, studentsListContainer, noStudentsText,
+  // studentCard, studentName, gradesText, gradeInputContainer, input, button, addGradeButton, buttonText
+  // have been moved to their respective components (LecturerSubjectListItem, LecturerGroupListItem, StudentGradeItem).
+  // They are removed from here.
+  safeAreaCentered: { // This style was in your ProwadzacyEkran.js for loading/error, ensure it's kept if still used
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: 15,
-    backgroundColor: colors.white,
+    backgroundColor: colors.background,
   },
-  subjectTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  loadingText: { // This style was in your ProwadzacyEkran.js for loading, ensure it's kept if still used
+    marginTop: 10,
+    fontSize: 16,
     color: colors.primary,
   },
-  groupsListContainer: {
-    paddingHorizontal: 15,
-    paddingBottom: 10, 
-  },
-  groupContainer: { // Kontener dla pojedynczej grupy
-    backgroundColor: colors.white, 
-    borderRadius: 8,
-    paddingVertical: 5, // Mniejszy padding pionowy dla nagłówka grupy
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: colors.lightGrey,
-  },
-  groupHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 10, // Mniejszy padding dla nagłówka grupy
-    paddingVertical: 8,
-  },
-  groupTitle: {
+  errorText: { // This style was in your ProwadzacyEkran.js for error, ensure it's kept if still used
     fontSize: 16,
-    fontWeight: '600',
-    color: colors.darkFont,
+    color: colors.error, // Assuming you have colors.error
+    textAlign: 'center',
+    marginBottom: 20,
   },
-  studentsListContainer: {
-    paddingHorizontal: 10, 
-    paddingBottom: 10,
-  },
-  studentCard: {
-    backgroundColor: colors.lightWhite, // Lekkie tło dla karty studenta
-    borderRadius: 6,
-    padding: 10,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: colors.extraLightGrey, // Bardzo jasna ramka
-  },
-  studentName: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: colors.darkFont,
-    marginBottom: 5, // Zmniejszony margines dolny
-  },
-  gradesText: { // Nowy styl dla tekstu ocen
-    fontSize: 14,
-    color: colors.mediumGrey,
-    marginBottom: 8,
-    fontStyle: 'italic',
-  },
-  gradeInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 5,
-  },
-  input: {
-    flex: 1, // Aby input zajął dostępną przestrzeń
-    borderWidth: 1,
-    borderColor: colors.lightGrey,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginRight: 10, // Odstęp od przycisku
-    backgroundColor: colors.white,
-    fontSize: 15,
-    color: colors.darkFont,
-  },
-  button: {
+  retryButton: { // This style was in your ProwadzacyEkran.js for error, ensure it's kept if still used
     backgroundColor: colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  addGradeButton: {
-    paddingHorizontal: 15, // Mniejszy przycisk dodawania oceny
     paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
   },
-  buttonText: {
+  retryButtonText: { // This style was in your ProwadzacyEkran.js for error, ensure it's kept if still used
     color: colors.white,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   noDataText: {
@@ -397,22 +246,8 @@ const styles = StyleSheet.create({
     color: colors.mediumGrey,
     marginTop: 40,
   },
-  noGroupsText: {
-    textAlign: 'left',
-    fontSize: 14,
-    fontStyle: 'italic',
-    color: colors.mediumGrey,
-    paddingVertical: 10, 
-  },
-  noStudentsText: {
-    textAlign: 'left',
-    fontSize: 14,
-    fontStyle: 'italic',
-    color: colors.mediumGrey,
-    paddingVertical: 8,
-  },
   logoutButton:{
-    width:window.width*0.45,
+    width:width*0.45, // Corrected: window.width to width
     backgroundColor: '#FF3B30',
     paddingVertical: 15,
     paddingHorizontal: 25,

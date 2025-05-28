@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://192.168.0.105:8080';
+const API_BASE_URL = 'http://192.168.0.102:8080';
 
 export const api = {
   async get(resource) {

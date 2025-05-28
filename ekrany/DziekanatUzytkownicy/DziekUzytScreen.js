@@ -22,7 +22,7 @@ export default function DziekanatUzytkownicy({ navigation }) {
             const fetchUsers = async () => {
                 try {
                     setIsLoading(true);
-                    const response = await api.get('uzytkowniki/');
+                    const response = await api.get('uzytkownicy/');
                     const sortedUsers = response.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
                     setUsers(sortedUsers);
                 } catch (e) {
@@ -85,7 +85,7 @@ export default function DziekanatUzytkownicy({ navigation }) {
                         onPress: async () => {
                             console.log('Usuń użytkownika:', userId);
                             try {
-                                await api.delete(`uzytkowniki/${userId}`);
+                                await api.delete(`uzytkownicy/${userId}`);
                                 setUsers(users.filter(user => user.uid !== userId));
                             } catch (error) {
                                 console.error("Failed to delete user:", error);

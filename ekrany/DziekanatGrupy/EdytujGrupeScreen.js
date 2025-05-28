@@ -18,18 +18,33 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import localStyles from './styles';
 import { api } from '../../serwisy/api';
 import AutocompleteInput from 'react-native-autocomplete-input';
+import { useGroupFormData } from '../../hooks/useGroupFormData';
+import { useGroupDetails } from '../../hooks/useGroupDetails';
 
 export default function EdytujGrupeScreen({ route, navigation }) {
-    const { id } = route.params;
-    const groupId = id;
-    const [name, setName] = useState('');
-    const [originalName, setOriginalName] = useState('');
-    const [subjectId, setSubjectId] = useState('');
-    const [lecturerId, setLecturerId] = useState('');
-    const [groupType, setGroupType] = useState('LAB'); 
-    const [subjects, setSubjects] = useState([]);
-    const [lecturers, setLecturers] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { id: groupId } = route.params;
+
+    const {
+        grupa,
+        name,
+        setName,
+        subjectId,
+        setSubjectId,
+        lecturerId,
+        setLecturerId,
+        groupType,
+        setGroupType,
+        isLoading: isLoadingData,
+        error: groupDetailsError,
+        setGrupa
+    } = useGroupDetails(groupId, navigation);
+
+    const {
+        subjects,
+        lecturers,
+        isLoading: isLoadingFormOptions,
+        error: formOptionsError,
+    } = useGroupFormData();
 
     const [subjectQuery, setSubjectQuery] = useState('');
     const [lecturerQuery, setLecturerQuery] = useState('');
@@ -39,60 +54,18 @@ export default function EdytujGrupeScreen({ route, navigation }) {
     const [hideLecturerResults, setHideLecturerResults] = useState(true);
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setIsLoading(true);
-                const subjectsResponse = await api.get('przedmioty/');
-                setSubjects(subjectsResponse || []);
-
-                const usersResponse = await api.get('uzytkowniki/');
-                if (usersResponse) {
-                    const filtered = usersResponse.filter(user => user.role === 'wykladowca');
-                    setLecturers(filtered);
-                } else {
-                    setLecturers([]);
-                }
-
-                if (groupId) {
-                    const groupResponse = await api.get(`grupy/${groupId}`);
-                    if (groupResponse) {
-                        const nameParts = groupResponse.name.split('_');
-                        if (nameParts.length >= 2) {
-                            setGroupType(nameParts[nameParts.length - 1]);
-                            let baseName = groupResponse.name;
-                            baseName = baseName.replace(`_${nameParts[nameParts.length -1]}`, '');
-                            if (nameParts.length > 2) {
-                                baseName = baseName.replace(`_${nameParts[nameParts.length -2]}`, '');
-                            }
-                            setName(baseName);
-                            setOriginalName(baseName);
-                        } else {
-                            setName(groupResponse.name || '');
-                            setOriginalName(groupResponse.name || '');
-                        }
-                        
-                        setSubjectId(groupResponse.subjectId || '');
-                        setLecturerId(groupResponse.lecturerId || '');
-
-                        if (groupResponse.subjectId && subjectsResponse) {
-                            const currentSubject = subjectsResponse.find(s => s.id === groupResponse.subjectId);
-                            if (currentSubject) setSubjectQuery(currentSubject.name);
-                        }
-                        if (groupResponse.lecturerId && usersResponse) {
-                            const currentLecturer = usersResponse.find(u => u.uid === groupResponse.lecturerId && u.role === 'wykladowca');
-                            if (currentLecturer) setLecturerQuery(`${currentLecturer.name || ''} ${currentLecturer.surname || ''}`.trim());
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error("Nie udało się pobrać danych:", error);
-                Alert.alert("Błąd", "Nie udało się pobrać danych grupy, przedmiotów lub wykładowców.");
-            } finally {
-                setIsLoading(false);
+        if (grupa && !isLoadingFormOptions && subjects.length > 0 && lecturers.length > 0) {
+            const initialSubject = subjects.find(s => s.id === grupa.subjectId);
+            if (initialSubject) {
+                setSubjectQuery(initialSubject.name);
             }
-        };
-        fetchData();
-    }, [groupId]);
+
+            const initialLecturer = lecturers.find(l => l.uid === grupa.lecturerId);
+            if (initialLecturer) {
+                setLecturerQuery(`${initialLecturer.name || ''} ${initialLecturer.surname || ''}`.trim());
+            }
+        }
+    }, [grupa, isLoadingFormOptions, subjects, lecturers]);
 
     const findSubject = (query) => {
         if (query === '') return [];
@@ -111,16 +84,21 @@ export default function EdytujGrupeScreen({ route, navigation }) {
             Alert.alert("Błąd", "Wszystkie pola (nazwa, typ, przedmiot, wykładowca) są wymagane.");
             return;
         }
+        if (!grupa) {
+            Alert.alert("Błąd", "Dane grupy nie zostały jeszcze załadowane.");
+            return;
+        }
         try {
             const selectedSubject = subjects.find(s => s.id === subjectId);
             if (!selectedSubject) {
-                Alert.alert("Błąd", "Nie znaleziono wybranego przedmiotu.");
+                Alert.alert("Błąd", "Nie znaleziono wybranego przedmiotu. Spróbuj ponownie.");
                 return;
             }
+
             const subjectPrefix = selectedSubject.name.substring(0, 3).toUpperCase();
             const finalGroupName = `${name.trim()}_${subjectPrefix}_${groupType}`;
 
-            await api.put(`grupy/${groupId}`, {
+            const response = await api.put(`grupy/${grupa.id}`, {
                 nazwa: finalGroupName,
                 przedmiotId: subjectId,
                 wykladowcaId: lecturerId,
@@ -133,7 +111,7 @@ export default function EdytujGrupeScreen({ route, navigation }) {
         }
     };
 
-    if (isLoading) {
+    if (isLoadingData || isLoadingFormOptions) {
         return (
             <SafeAreaView style={localStyles.safeArea}>
                 <View style={[localStyles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -248,7 +226,7 @@ export default function EdytujGrupeScreen({ route, navigation }) {
                                 <TouchableOpacity
                                     style={[localStyles.addButton, { marginTop: 30 }]} 
                                     onPress={handleSaveChanges}
-                                    disabled={isLoading}
+                                    disabled={isLoadingData || isLoadingFormOptions}
                                 >
                                     <Text style={localStyles.addButtonText}>Zapisz Zmiany</Text>
                                 </TouchableOpacity>

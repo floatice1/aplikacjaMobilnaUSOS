@@ -13,7 +13,7 @@ export default function DodajUzytkownika({ navigation }) {
 
     const obsluzPrzeslanie = async () => {
         try {
-            const response = await api.post('uzytkowniki/', {
+            const response = await api.post('uzytkownicy/', {
                 imie: imie,
                 email: email,
                 haslo: haslo,
