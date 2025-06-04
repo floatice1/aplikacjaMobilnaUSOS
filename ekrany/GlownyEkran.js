@@ -11,11 +11,11 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { useNavigation, useFocusEffect } from '@react-navigation/native'; // Dodano useFocusEffect
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import colors from '../assets/colors/colors';
 import SubjectListItem from './GlownyEkranComponents/SubjectListItem'; 
-import useStudentDashboardData from '../hooks/useStudentDashboardData'; // Import hooka
-import { handleLogout as performLogout } from '../utils/authUtils'; // Zaimportuj funkcję wylogowania
+import useStudentDashboardData from '../hooks/useStudentDashboardData';
+import { handleLogout as performLogout } from '../utils/authUtils';
 
 const { width } = Dimensions.get('window');
 

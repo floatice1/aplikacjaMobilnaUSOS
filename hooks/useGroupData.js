@@ -54,7 +54,6 @@ export const useGroupData = () => {
         fetchData();
     }, [fetchData]);
 
-    // Function to update local state after deleting a group
     const removeGroupFromState = (groupId) => {
         setGroupsDetails(prevDetails => prevDetails.filter(group => group.id !== groupId));
     };

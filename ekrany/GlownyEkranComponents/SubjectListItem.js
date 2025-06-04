@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import GroupListItem from './GroupListItem'; // Importujemy nowo utworzony komponent
-import colors from '../../assets/colors/colors'; // Dostosuj ścieżkę do colors
+import GroupListItem from './GroupListItem';
+import colors from '../../assets/colors/colors';
 
 const SubjectListItem = ({ subject, isExpanded, onToggleExpansion }) => {
   return (

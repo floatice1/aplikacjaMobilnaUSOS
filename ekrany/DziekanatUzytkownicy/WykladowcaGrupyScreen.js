@@ -38,6 +38,7 @@ export default function WykladowcaGrupyScreen({ route, navigation }) {
             else if (group.name.endsWith('_PRO')) groupType = 'Projekt';
             else if (group.name.endsWith('_WYK')) groupType = 'Wykład';
             else if (group.name.endsWith('_CW')) groupType = 'Ćwiczenia';
+else if (group.name.endsWith('_SEM')) groupType = 'Seminarium';
         }
 
         if (group.studentsIds && Array.isArray(group.studentsIds)) {

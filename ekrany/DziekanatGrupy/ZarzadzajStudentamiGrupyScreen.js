@@ -33,7 +33,7 @@ export default function ZarzadzajStudentamiGrupyScreen({ route, navigation }) {
                     const currentStudentIds = groupRes?.data?.studentsIds || groupRes?.studentsIds || []; 
                     setGroupStudentsIds(currentStudentIds);
 
-                    const allUsersRes = await api.get('uzytkowniki/');
+                    const allUsersRes = await api.get('uzytkownicy/');
                     const allStudents = (allUsersRes?.data || allUsersRes).filter(user => user.role === 'student');
 
                     if (action === 'add') {

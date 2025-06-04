@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import colors from '../../assets/colors/colors';
-import StudentGradeItem from './StudentGradeItem'; // Import nowego komponentu
+import StudentGradeItem from './StudentGradeItem';
 
 const { width } = Dimensions.get('window');
 
@@ -16,8 +16,6 @@ const LecturerGroupListItem = ({
     group, 
     isExpanded, 
     onToggleExpansion,
-    // renderStudentItem // Już nie potrzebujemy tego propa
-    // Dodajemy nowe propsy potrzebne dla StudentGradeItem
     gradeToAdd,
     onGradeChange,
     onAddGrade,
@@ -34,9 +32,9 @@ const LecturerGroupListItem = ({
           {group.students && group.students.length > 0 ? (
             group.students.map(student => (
               <StudentGradeItem
-                key={student.id} // Ważne: dodaj klucz tutaj
+                key={student.id}
                 student={student}
-                group={group} // Przekazujemy grupę
+                group={group}
                 gradeToAdd={gradeToAdd}
                 onGradeChange={onGradeChange}
                 onAddGrade={onAddGrade}

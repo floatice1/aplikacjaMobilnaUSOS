@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { api } from '../serwisy/api'; // Dostosuj ścieżkę do api.js
+import { api } from '../serwisy/api';
 import { getAuth } from 'firebase/auth';
 
 const useStudentDashboardData = () => {
@@ -35,14 +35,14 @@ const useStudentDashboardData = () => {
         
         const groupGrades = allGradesResponse
           .filter(grade => grade.studentId === studentId && grade.groupId === group.id)
-          .map(grade => grade.value); // Zakładamy, że 'value' to wartość oceny
+          .map(grade => grade.value);
 
         return {
           ...group,
           subjectName: subjectDetails ? subjectDetails.name : 'Nieznany przedmiot',
           lecturerName: lecturerDetails ? `${lecturerDetails.name}` : 'Nieznany prowadzący',
           grades: groupGrades,
-          groupType: group.name.includes('_WYK') ? 'Wykład' : group.name.includes('_CW') ? 'Ćwiczenia' : group.name.includes('_LAB') ? 'Laboratoria' : group.name.includes('_PRO')? 'Projekt' : 'Nieznany typ zajęć',
+          groupType: group.name.includes('_WYK') ? 'Wykład' : group.name.includes('_CW') ? 'Ćwiczenia' : group.name.includes('_LAB') ? 'Laboratoria' : group.name.includes('_PRO')? 'Projekt' : group.name.includes('_SEM')? 'Seminarium' : 'Nieznany typ zajęć',
         };
       });
 

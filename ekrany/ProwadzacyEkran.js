@@ -9,17 +9,16 @@ import {
   Dimensions,
   SafeAreaView,
   FlatList,
-  ActivityIndicator // Dodaj ActivityIndicator
+  ActivityIndicator
 } from 'react-native';
-// import { Picker } from '@react-native-picker/picker'; // Jeśli nie jest używany, można usunąć
-// import { getAuth } from 'firebase/auth'; // Już niepotrzebne bezpośrednio tutaj
+
 import colors from '../assets/colors/colors';
-import { useNavigation, useFocusEffect } from '@react-navigation/native'; // Dodaj useFocusEffect
-// import { api } from '../serwisy/api'; // Już niepotrzebne bezpośrednio tutaj
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { handleLogout as performLogout } from '../utils/authUtils';
-import { useLecturerData } from '../hooks/useLecturerData'; // Import nowego hooka
-import LecturerSubjectListItem from './ProwadzacyEkranComponents/LecturerSubjectListItem'; // Import nowego komponentu
+import { useLecturerData } from '../hooks/useLecturerData';
+import LecturerSubjectListItem from './ProwadzacyEkranComponents/LecturerSubjectListItem';
 
 const { width, height } = Dimensions.get('window');
 
@@ -29,7 +28,7 @@ const ProwadzacyEkran = () => {
     isLoading,
     error,
     refreshData,
-    handleAddOrUpdateGrade // Zmieniona nazwa w hooku
+    handleAddOrUpdateGrade
   } = useLecturerData();
 
   const [expandedSubjectId, setExpandedSubjectId] = useState(null);
@@ -58,24 +57,23 @@ const ProwadzacyEkran = () => {
     setExpandedGroupId(expandedGroupId === groupId ? null : groupId);
   };
 
-  // Funkcja do obsługi zmiany tekstu oceny
+  
   const handleGradeInputChange = (studentId, text) => {
     setSelectedStudentIdForGrade(studentId);
     setGradeToAdd(text);
   };
 
-  // Funkcja do dodawania/aktualizacji oceny (używa funkcji z hooka)
+  
   const handleAddGradePress = async (studentId, groupId) => {
     const success = await handleAddOrUpdateGrade(studentId, groupId, gradeToAdd);
     if (success) {
       setGradeToAdd('');
       setSelectedStudentIdForGrade('');
-      // refreshData() jest już w hooku
+      
     }
   };
 
-  // Ta funkcja została zastąpiona przez nowy komponent StudentGradeItem
-  // const renderStudentItem = (student, group) => { ... };
+  
 
   const renderGroupItem = (group) => {
     const isExpanded = expandedGroupId === group.id;
@@ -119,7 +117,7 @@ const ProwadzacyEkran = () => {
   );
   };
 
-  if (isLoading && subjectsWithGroupsAndStudents.length === 0) { // Pokaż ładowanie tylko przy pierwszym ładowaniu
+  if (isLoading && subjectsWithGroupsAndStudents.length === 0) {
     return (
       <SafeAreaView style={styles.safeAreaCentered}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -155,8 +153,8 @@ const ProwadzacyEkran = () => {
                 onToggleExpansion={toggleSubjectExpansion}
                 expandedGroupId={expandedGroupId}
                 onToggleGroupExpansion={toggleGroupExpansion}
-                // renderStudentItem={renderStudentItem} // Usuwamy to
-                // Przekazujemy nowe propsy i funkcje obsługi
+                
+                
                 gradeToAdd={gradeToAdd}
                 onGradeChange={handleGradeInputChange}
                 onAddGrade={handleAddGradePress}
@@ -192,7 +190,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   appTitle: {
-    fontSize: width * 0.12, // Responsive font size
+    fontSize: width * 0.12,
       fontWeight: 'bold',
       color: colors.darkYellow || '#FFA500', 
       marginBottom: 30,
@@ -207,35 +205,31 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingBottom: 20,
   },
-  // Styles for subjectContainer, subjectHeader, subjectTitle, groupsListContainer, noGroupsText,
-  // groupContainer, groupHeader, groupTitle, studentsListContainer, noStudentsText,
-  // studentCard, studentName, gradesText, gradeInputContainer, input, button, addGradeButton, buttonText
-  // have been moved to their respective components (LecturerSubjectListItem, LecturerGroupListItem, StudentGradeItem).
-  // They are removed from here.
-  safeAreaCentered: { // This style was in your ProwadzacyEkran.js for loading/error, ensure it's kept if still used
+  
+  safeAreaCentered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.background,
   },
-  loadingText: { // This style was in your ProwadzacyEkran.js for loading, ensure it's kept if still used
+  loadingText: {
     marginTop: 10,
     fontSize: 16,
     color: colors.primary,
   },
-  errorText: { // This style was in your ProwadzacyEkran.js for error, ensure it's kept if still used
+  errorText: {
     fontSize: 16,
-    color: colors.error, // Assuming you have colors.error
+    color: colors.error,
     textAlign: 'center',
     marginBottom: 20,
   },
-  retryButton: { // This style was in your ProwadzacyEkran.js for error, ensure it's kept if still used
+  retryButton: {
     backgroundColor: colors.primary,
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 20,
   },
-  retryButtonText: { // This style was in your ProwadzacyEkran.js for error, ensure it's kept if still used
+  retryButtonText: {
     color: colors.white,
     fontSize: 16,
     fontWeight: 'bold',
@@ -247,7 +241,7 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
   logoutButton:{
-    width:width*0.45, // Corrected: window.width to width
+    width:width*0.45,
     backgroundColor: '#FF3B30',
     paddingVertical: 15,
     paddingHorizontal: 25,

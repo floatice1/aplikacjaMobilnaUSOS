@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import colors from '../../assets/colors/colors'; // Dostosuj ścieżkę do colors
+import colors from '../../assets/colors/colors';
 
 const GroupListItem = ({ group }) => {
   return (

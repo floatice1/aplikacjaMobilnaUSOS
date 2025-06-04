@@ -149,6 +149,7 @@ export default function EdytujGrupeScreen({ route, navigation }) {
                                             <Picker.Item label="Projekt" value="PRO" />
                                             <Picker.Item label="Wykład" value="WYK" />
                                             <Picker.Item label="Ćwiczenia" value="CW" />
+                                            <Picker.Item label="Seminarium" value="SEM" />
                                         </Picker>
                                     </View>
                                 </View>

@@ -52,7 +52,7 @@ export const useLecturerData = () => {
           return {
             ...group,
             students: studentsInGroup,
-            groupType: group.name.includes('_WYK') ? 'Wykład' : group.name.includes('_CW') ? 'Ćwiczenia' : group.name.includes('_LAB') ? 'Laboratoria' : group.name.includes('_PRO')? 'Projekt' : 'Nieznany typ zajęć',
+            groupType: group.name.includes('_WYK') ? 'Wykład' : group.name.includes('_CW') ? 'Ćwiczenia' : group.name.includes('_LAB') ? 'Laboratoria' : group.name.includes('_PRO')? 'Projekt' : group.name.includes('_SEM')? 'Seminarium' : 'Nieznany typ zajęć',
           };
         }));
 
@@ -109,7 +109,7 @@ export const useLecturerData = () => {
         await api.post('oceny/', payload);
         Alert.alert('Sukces', 'Ocena została dodana.');
       }
-      fetchLecturerData(); // Odśwież dane po dodaniu/aktualizacji oceny
+      fetchLecturerData();
       return true;
     } catch (error) {
       console.error('Błąd podczas zapisywania oceny w useLecturerData:', error);

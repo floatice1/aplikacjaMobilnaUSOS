@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import colors from '../../assets/colors/colors';
-import LecturerGroupListItem from './LecturerGroupListItem'; // Import nowego komponentu
+import LecturerGroupListItem from './LecturerGroupListItem';
 
 const { width } = Dimensions.get('window');
 
@@ -18,8 +18,6 @@ const LecturerSubjectListItem = ({
     onToggleExpansion,
     expandedGroupId,
     onToggleGroupExpansion,
-    // renderStudentItem // Już nie potrzebujemy tego propa
-    // Dodajemy nowe propsy potrzebne dla StudentGradeItem, które będą przekazane dalej
     gradeToAdd,
     onGradeChange,
     onAddGrade,
@@ -40,8 +38,8 @@ const LecturerSubjectListItem = ({
                 group={group}
                 isExpanded={expandedGroupId === group.id}
                 onToggleExpansion={onToggleGroupExpansion}
-                // renderStudentItem={renderStudentItem} // Usuwamy to
-                // Przekazujemy nowe propsy
+                
+                
                 gradeToAdd={gradeToAdd}
                 onGradeChange={onGradeChange}
                 onAddGrade={onAddGrade}
@@ -89,7 +87,6 @@ const styles = StyleSheet.create({
     color: colors.mediumGrey,
     paddingVertical: 10, 
   },
-  // Możesz przenieść więcej stylów tutaj, jeśli są specyficzne dla tego komponentu
 });
 
 export default LecturerSubjectListItem;

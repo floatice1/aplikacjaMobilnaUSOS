@@ -63,6 +63,7 @@ export default function StudentGrupyScreen({ route, navigation }) {
             else if (group.name.endsWith('_PRO')) groupType = 'Projekt';
             else if (group.name.endsWith('_WYK')) groupType = 'Wykład';
             else if (group.name.endsWith('_CW')) groupType = 'Ćwiczenia';
+else if (group.name.endsWith('_SEM')) groupType = 'Seminarium';
         }
 
         return {
@@ -163,7 +164,7 @@ export default function StudentGrupyScreen({ route, navigation }) {
                 }
             ],
             "plain-text",
-            item.ocena ? String(item.ocena) : '' // Upewnij się, że wartość początkowa jest stringiem
+            item.ocena ? String(item.ocena) : ''
         );
     };
 
