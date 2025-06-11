@@ -1,33 +1,67 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
+    Platform,
     TouchableOpacity,
     Text,
     ActivityIndicator,
     SafeAreaView,
     FlatList,
     Alert,
-    StyleSheet
+    StyleSheet,
+    TextInput,
+    Modal
 } from 'react-native';
+// Upewnij się, że te importy wskazują na prawidłowe pliki w Twoim projekcie
 import localStyles from './styles';
 import { api } from '../../serwisy/api';
-import { useFocusEffect, useRoute } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import colors from '../../assets/colors/colors';
 
 export default function StudentGrupyScreen({ route, navigation }) {
     const { studentId, studentName } = route.params;
-    const RZECZYWISTE_WYSTAWIONE_PRZEZ_ID = 'dean_user_id_placeholder';
+    const RZECZYWISTE_WYSTAWIONE_PRZEZ_ID = 'dean_user_id_placeholder'; // Pamiętaj, aby ustawić tu prawdziwe ID
+
+    const [isPromptVisible, setPromptVisible] = useState(false);
+    const [currentGradingItem, setCurrentGradingItem] = useState(null);
+    const [gradeInputValue, setGradeInputValue] = useState('');
 
     const [groupsDetails, setGroupsDetails] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [expandedItemId, setExpandedItemId] = useState(null);
 
+    // Wyodrębniona funkcja do pobierania wszystkich danych
+    const fetchAllData = useCallback(async () => {
+        if (!studentId) {
+            Alert.alert("Błąd", "Nie przekazano ID studenta.");
+            setIsLoading(false);
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const response = await api.get('grupy/');
+            const studentGroups = response.filter(group =>
+                group.studentsIds && group.studentsIds.includes(studentId)
+            );
+            const sortedGroups = studentGroups.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            const detailedGroups = await Promise.all(
+                sortedGroups.map(group => fetchGroupDetails(group))
+            );
+            setGroupsDetails(detailedGroups);
+        } catch (e) {
+            console.error("Nie udało się pobrać grup studenta lub ich szczegółów:", e);
+            Alert.alert("Błąd", "Nie udało się pobrać danych grup studenta.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [studentId]); // zależność od studentId
+
     const fetchGroupDetails = async (group) => {
         let subjectName = 'Brak';
         let lecturerName = 'Brak';
         let groupType = 'Nieznany';
-        let ocena = null; 
-        let ocenaId = null; 
+        let ocena = null;
+        let ocenaId = null;
 
         try {
             if (group.subjectId) {
@@ -38,24 +72,18 @@ export default function StudentGrupyScreen({ route, navigation }) {
                 const lecturerRes = await api.get(`uzytkownicy/${group.lecturerId}`);
                 lecturerName = lecturerRes?.name || 'Brak';
             }
-            
-            try {
-                const allOcenyResponse = await api.get('oceny/');
-                if (allOcenyResponse && Array.isArray(allOcenyResponse)) {
-                    const relevantOcena = allOcenyResponse.find(
-                        o => o.studentId === studentId && o.groupId === group.id
-                    );
-                    if (relevantOcena) {
-                        ocena = relevantOcena.value;
-                        ocenaId = relevantOcena.id;
-                    }
+            const allOcenyResponse = await api.get('oceny/');
+            if (allOcenyResponse && Array.isArray(allOcenyResponse)) {
+                const relevantOcena = allOcenyResponse.find(
+                    o => o.studentId === studentId && o.groupId === group.id
+                );
+                if (relevantOcena) {
+                    ocena = relevantOcena.value;
+                    ocenaId = relevantOcena.id;
                 }
-            } catch (e) {
-                console.warn(`Nie udało się pobrać lub przetworzyć ocen dla studenta ${studentId} w grupie ${group.id}:`, e);
             }
-
         } catch (e) {
-            console.error(`Nie udało się pobrać szczegółów dla grupy ${group.id}:`, e);
+            console.warn(`Nie udało się pobrać szczegółów dla grupy ${group.id}:`, e);
         }
 
         if (group.name) {
@@ -63,132 +91,81 @@ export default function StudentGrupyScreen({ route, navigation }) {
             else if (group.name.endsWith('_PRO')) groupType = 'Projekt';
             else if (group.name.endsWith('_WYK')) groupType = 'Wykład';
             else if (group.name.endsWith('_CW')) groupType = 'Ćwiczenia';
-else if (group.name.endsWith('_SEM')) groupType = 'Seminarium';
+            else if (group.name.endsWith('_SEM')) groupType = 'Seminarium';
         }
-
-        return {
-            ...group,
-            subjectName,
-            lecturerName,
-            groupType,
-            ocena, 
-            ocenaId 
-        };
+        return { ...group, subjectName, lecturerName, groupType, ocena, ocenaId };
     };
 
     useFocusEffect(
         useCallback(() => {
-            const fetchStudentGroupsAndDetails = async () => {
-                if (!studentId) {
-                    Alert.alert("Błąd", "Nie przekazano ID studenta.");
-                    setIsLoading(false);
-                    return;
-                }
-                try {
-                    setIsLoading(true);
-                    const response = await api.get('grupy/');
-                    const studentGroups = response.filter(group => 
-                        group.studentsIds && group.studentsIds.includes(studentId)
-                    );
-                    const sortedGroups = studentGroups.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-                    
-                    const detailedGroups = await Promise.all(
-                        sortedGroups.map(group => fetchGroupDetails(group))
-                    );
-                    setGroupsDetails(detailedGroups);
-                } catch (e) {
-                    console.error("Nie udało się pobrać grup studenta lub ich szczegółów:", e);
-                    Alert.alert("Błąd", "Nie udało się pobrać danych grup studenta.");
-                } finally {
-                    setIsLoading(false);
-                }
-            };
-
-            fetchStudentGroupsAndDetails();
-        }, [studentId])
+            fetchAllData();
+        }, [fetchAllData])
     );
 
-    const handleGradeChange = async (item) => {
-        Alert.prompt(
-            "Zmień ocenę",
-            `Wprowadź nową ocenę dla ${studentName} z grupy ${item.name}:\nObecna ocena: ${item.ocena || 'Brak'}`,[
-                {
-                    text: "Anuluj",
-                    style: "cancel"
-                },
-                {
-                    text: "Zapisz",
-                    onPress: async (nowaOcenaValue) => {
-                        if (nowaOcenaValue !== null && nowaOcenaValue.trim() !== '') {
-                            const wartoscOceny = parseFloat(nowaOcenaValue.trim());
+    const handleGradeChange = (item) => {
+        setCurrentGradingItem(item);
+        setGradeInputValue(item.ocena ? String(item.ocena) : '');
+        setPromptVisible(true);
+    };
 
-                            if (isNaN(wartoscOceny) || wartoscOceny < 2 || wartoscOceny > 5) {
-                                Alert.alert("Błąd", "Ocena musi być liczbą od 2 do 5.");
-                                return;
-                            }
+    const handleSaveGrade = async () => {
+        if (!currentGradingItem) return;
 
-                            try {
-                                const payload = {
-                                    studentId: studentId,
-                                    grupaId: item.id, 
-                                    wystawionePrzez: RZECZYWISTE_WYSTAWIONE_PRZEZ_ID, 
-                                    wartoscOceny: wartoscOceny
-                                };
+        const nowaOcenaValue = gradeInputValue;
+        if (nowaOcenaValue === null || nowaOcenaValue.trim() === '') {
+            Alert.alert("Błąd", "Ocena nie może być pusta.");
+            return;
+        }
 
-                                if (item.ocenaId) {
-                                    await api.put(`oceny/${item.ocenaId}`, payload); 
-                                    Alert.alert("Sukces", "Ocena została zaktualizowana.");
-                                } else {
-                                    await api.post("oceny/", payload);
-                                    Alert.alert("Sukces", "Ocena została dodana.");
-                                }
-                                
-                                const updatedGroupsDetails = await Promise.all(
-                                    groupsDetails.map(async (gd) => {
-                                        if (gd.id === item.id) {
-                                            return fetchGroupDetails(gd); 
-                                        }
-                                        return gd;
-                                    })
-                                );
-                                setGroupsDetails(updatedGroupsDetails);
+        const wartoscOceny = parseFloat(nowaOcenaValue.trim().replace(',', '.'));
+        if (isNaN(wartoscOceny) || wartoscOceny < 2 || wartoscOceny > 5) {
+            Alert.alert("Błąd", "Ocena musi być liczbą od 2 do 5.");
+            return;
+        }
 
-                            } catch (error) {
-                                console.error("Błąd podczas zapisu oceny:", error);
-                                Alert.alert("Błąd", `Nie udało się zapisać oceny. ${error.message || ''}`);
-                            }
-                        } else if (nowaOcenaValue.trim() === '') {
-                            Alert.alert("Błąd", "Ocena nie może być pusta.");
-                        }
-                    }
-                }
-            ],
-            "plain-text",
-            item.ocena ? String(item.ocena) : ''
-        );
+        try {
+            const payload = {
+                studentId: studentId,
+                grupaId: currentGradingItem.id,
+                wystawionePrzez: RZECZYWISTE_WYSTAWIONE_PRZEZ_ID,
+                wartoscOceny: String(wartoscOceny)
+            };
+
+            if (currentGradingItem.ocenaId) {
+                await api.put(`oceny/${currentGradingItem.ocenaId}`, payload);
+                Alert.alert("Sukces", "Ocena została zaktualizowana.");
+            } else {
+                await api.post("oceny/", payload);
+                Alert.alert("Sukces", "Ocena została dodana.");
+            }
+
+            setPromptVisible(false);
+            setCurrentGradingItem(null);
+            
+            await fetchAllData();
+
+        } catch (error) {
+            const errorMessage = error.response?.data?.detail || error.message || 'Nieznany błąd';
+            console.error("Błąd podczas zapisu oceny:", JSON.stringify(error.response?.data || error, null, 2));
+            Alert.alert("Błąd zapisu", `Nie udało się zapisać oceny. Serwer zwrócił: ${errorMessage}`);
+        }
     };
 
     const renderGroupItem = ({ item }) => {
         const isExpanded = item.id === expandedItemId;
-
-        const toggleExpand = () => {
-            setExpandedItemId(isExpanded ? null : item.id);
-        };
+        const toggleExpand = () => setExpandedItemId(isExpanded ? null : item.id);
 
         return (
-            <TouchableOpacity
-                style={localStyles.userItem}
-                onPress={toggleExpand}
-            >
+            <TouchableOpacity style={localStyles.userItem} onPress={toggleExpand}>
                 <View style={styles.groupItemHeader}>
                     <Text style={localStyles.userName}>{item.name}</Text>
-                    <TouchableOpacity onPress={() => handleGradeChange(item)} style={styles.gradeButton}>
+                    <TouchableOpacity onPress={(e) => { e.stopPropagation(); handleGradeChange(item); }} style={styles.gradeButton}>
                         <Text style={styles.gradeText}>{item.ocena ? `Ocena: ${item.ocena}` : 'Dodaj/Zmień ocenę'}</Text>
                     </TouchableOpacity>
                 </View>
                 {isExpanded && (
                     <View style={localStyles.expandedUserInfo}>
-                        <View style={localStyles.userInfoTextContainer}> 
+                        <View style={localStyles.userInfoTextContainer}>
                             <View style={localStyles.userInfoRow}>
                                 <Text style={localStyles.userInfoLabel}>Typ: {item.groupType}</Text>
                             </View>
@@ -217,7 +194,7 @@ else if (group.name.endsWith('_SEM')) groupType = 'Seminarium';
     return (
         <SafeAreaView style={localStyles.safeArea}>
             <View style={localStyles.container}>
-                <Text style={localStyles.headerText}>Grupy studenta: {studentName}</Text> 
+                <Text style={localStyles.headerText}>Grupy studenta: {studentName}</Text>
                 {groupsDetails.length === 0 && !isLoading ? (
                     <View style={[localStyles.container, localStyles.centered]}>
                         <Text style={localStyles.noUsersText}>Ten student nie jest przypisany do żadnych grup.</Text>
@@ -227,36 +204,58 @@ else if (group.name.endsWith('_SEM')) groupType = 'Seminarium';
                         data={groupsDetails}
                         renderItem={renderGroupItem}
                         keyExtractor={item => item.id.toString()}
+                        extraData={expandedItemId}
                     />
                 )}
+                <Modal
+                    transparent={true}
+                    animationType="fade"
+                    visible={isPromptVisible}
+                    onRequestClose={() => setPromptVisible(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContainer}>
+                            <Text style={styles.modalTitle}>Zmień ocenę</Text>
+                            <Text style={styles.modalSubtitle}>
+                                {`Student: ${studentName}\nGrupa: ${currentGradingItem?.name}`}
+                            </Text>
+                            <TextInput
+                                style={styles.modalInput}
+                                placeholder="Wprowadź ocenę (2-5)"
+                                keyboardType="numeric"
+                                value={gradeInputValue}
+                                onChangeText={setGradeInputValue}
+                                autoFocus={true}
+                            />
+                            <View style={styles.modalButtonContainer}>
+                                <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setPromptVisible(false)}>
+                                    <Text style={styles.modalButtonText}>Anuluj</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={[styles.modalButton, styles.saveButton]} onPress={handleSaveGrade}>
+                                    <Text style={[styles.modalButtonText, { color: colors.white }]}>Zapisz</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
             </View>
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    headerText: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: colors.text,
-        textAlign: 'center',
-        marginBottom: 15,
-        marginTop: 10,
-    },
-    groupItemHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 5,
-    },
-    gradeButton: {
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        backgroundColor: colors.primary,
-        borderRadius: 5,
-    },
-    gradeText: {
-        color: colors.white,
-        fontSize: 14,
-    }
+    headerText: { fontSize: 18, fontWeight: 'bold', textAlign: 'center', marginBottom: 15, marginTop: 10 },
+    groupItemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
+    gradeButton: { paddingHorizontal: 10, paddingVertical: 5, backgroundColor: '#007AFF', borderRadius: 5 },
+    gradeText: { color: 'white', fontSize: 14 },
+    modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' },
+    modalContainer: { width: '90%', maxWidth: 400, backgroundColor: 'white', borderRadius: 15, padding: 20, alignItems: 'stretch', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84 },
+    modalTitle: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 },
+    modalSubtitle: { fontSize: 14, textAlign: 'center', marginBottom: 16, color: '#666' },
+    modalInput: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 15, paddingVertical: Platform.OS === 'ios' ? 15 : 10, fontSize: 16, marginBottom: 20, textAlign: 'center' },
+    modalButtonContainer: { flexDirection: 'row', justifyContent: 'space-between' },
+    modalButton: { flex: 1, padding: 12, borderRadius: 8, alignItems: 'center' },
+    cancelButton: { backgroundColor: '#eee', marginRight: 10 },
+    saveButton: { backgroundColor: '#007AFF' },
+    modalButtonText: { fontWeight: 'bold', fontSize: 16 },
 });
