@@ -12,7 +12,6 @@ import {
     TextInput,
     Modal
 } from 'react-native';
-// Upewnij się, że te importy wskazują na prawidłowe pliki w Twoim projekcie
 import localStyles from './styles';
 import { api } from '../../serwisy/api';
 import { useFocusEffect } from '@react-navigation/native';
@@ -20,7 +19,7 @@ import colors from '../../assets/colors/colors';
 
 export default function StudentGrupyScreen({ route, navigation }) {
     const { studentId, studentName } = route.params;
-    const RZECZYWISTE_WYSTAWIONE_PRZEZ_ID = 'dean_user_id_placeholder'; // Pamiętaj, aby ustawić tu prawdziwe ID
+    const RZECZYWISTE_WYSTAWIONE_PRZEZ_ID = 'dean_user_id_placeholder';
 
     const [isPromptVisible, setPromptVisible] = useState(false);
     const [currentGradingItem, setCurrentGradingItem] = useState(null);
@@ -30,7 +29,6 @@ export default function StudentGrupyScreen({ route, navigation }) {
     const [isLoading, setIsLoading] = useState(true);
     const [expandedItemId, setExpandedItemId] = useState(null);
 
-    // Wyodrębniona funkcja do pobierania wszystkich danych
     const fetchAllData = useCallback(async () => {
         if (!studentId) {
             Alert.alert("Błąd", "Nie przekazano ID studenta.");
@@ -54,8 +52,7 @@ export default function StudentGrupyScreen({ route, navigation }) {
         } finally {
             setIsLoading(false);
         }
-    }, [studentId]); // zależność od studentId
-
+    }, [studentId]);
     const fetchGroupDetails = async (group) => {
         let subjectName = 'Brak';
         let lecturerName = 'Brak';

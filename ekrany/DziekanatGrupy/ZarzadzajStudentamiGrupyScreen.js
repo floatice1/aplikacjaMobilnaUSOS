@@ -83,17 +83,18 @@ export default function ZarzadzajStudentamiGrupyScreen({ route, navigation }) {
     };
 
     const renderStudentItem = ({ item }) => (
-        <TouchableOpacity 
+        <View 
             style={localStyles.userItem}
-            onPress={() => handleStudentAction(item.uid, `${item.name || ''} ${item.surname || ''}`.trim())}
         >
-            <View style={localStyles.userInfoRow}>
+            <View style={{justifyContent:'center', alignItems:'center'}}>
                 <Text style={localStyles.userName}>{`${item.name || ''} ${item.surname || ''}`.trim()} ({item.email})</Text>
-                <Text style={[localStyles.actionText, action === 'add' ? localStyles.addText : localStyles.removeText]}>
-                    {action === 'add' ? 'Dodaj' : 'Usuń'}
-                </Text>
+                <TouchableOpacity style={{backgroundColor:'silver', width:60,height:40, alignItems:'center', justifyContent:'center', borderRadius:20}} onPress={() => handleStudentAction(item.uid, `${item.name || ''} ${item.surname || ''}`.trim())}>
+                    <Text style={[localStyles.actionText, action === 'add' ? localStyles.addText : localStyles.removeText]}>
+                        {action === 'add' ? 'Dodaj' : 'Usuń'}
+                    </Text>
+                </TouchableOpacity>
             </View>
-        </TouchableOpacity>
+        </View>
     );
 
     if (isLoading && students.length === 0) {

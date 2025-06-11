@@ -65,7 +65,7 @@ const localStyles = StyleSheet.create({
     },
     userItem: {
         backgroundColor: colors.cardBackground || '#FFFFFF',
-        padding: 15,
+        padding: 10,
         marginBottom: 10,
         borderRadius: 10,
         shadowColor: '#000',
