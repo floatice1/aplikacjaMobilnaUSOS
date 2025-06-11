@@ -115,8 +115,9 @@ export default function StudentGrupyScreen({ route, navigation }) {
         }
 
         const wartoscOceny = parseFloat(nowaOcenaValue.trim().replace(',', '.'));
-        if (isNaN(wartoscOceny) || wartoscOceny < 2 || wartoscOceny > 5) {
-            Alert.alert("Błąd", "Ocena musi być liczbą od 2 do 5.");
+        const dozwoloneOceny = [2, 3, 3.5, 4, 4.5, 5];
+        if (isNaN(wartoscOceny) || !dozwoloneOceny.includes(wartoscOceny)) {
+            Alert.alert("Błąd", "Ocena musi być liczbą od 2 do 5. Np.: 3, 3.5");
             return;
         }
 
