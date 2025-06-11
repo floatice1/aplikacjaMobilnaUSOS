@@ -36,8 +36,8 @@ export default function EdytujPrzedmiotScreen({ route, navigation }) {
   const handleSaveChanges = async () => {
     try {
       await api.put(`przedmioty/${subjectId}`, {
-        nazwa: name,
-        opis: description
+        name: name,
+        description: description
       });
       
       Alert.alert("Sukces", "Dane przedmiotu zaktualizowane.");

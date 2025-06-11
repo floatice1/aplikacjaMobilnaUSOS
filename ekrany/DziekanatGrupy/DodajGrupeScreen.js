@@ -226,8 +226,7 @@ export default function DodajGrupeScreen({ navigation }) {
 const styles = StyleSheet.create({
     autocompleteWrapper: {
         position: 'relative',
-        marginBottom: 15,
-        
+        marginBottom: 40,
     },
     autocompleteInternalContainer: {
         borderWidth: 0,

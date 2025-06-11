@@ -9,7 +9,8 @@ const localStyles = StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: 'center',
-        padding: 20,
+        padding: 10,
+        marginTop:20
     },
     addButton: {
         backgroundColor: '#2ecc71',

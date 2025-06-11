@@ -15,7 +15,7 @@ import {
 import React, { useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { auth } from '../firebase';
-import { signInWithCustomToken, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithCustomToken, sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
 import colors from '../assets/colors/colors';
 import { api } from '../serwisy/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -35,6 +35,8 @@ const LogowanieEkran = () => {
           return;
       }
       try {
+          await signInWithEmailAndPassword(auth, email, haslo);
+        
           const response = await api.post('auth/login', {
               email: email,
               haslo: haslo
@@ -67,12 +69,14 @@ const LogowanieEkran = () => {
               nawigacja.replace('TabNavigation');
           }
       } catch (error) {
-          console.error("Login Error:", error);
           let errorMessage = "Wystąpił błąd podczas logowania.";
           if (error.response && error.response.data && error.response.data.detail) {
               errorMessage = error.response.data.detail;
           } else if (error.code) {
               switch (error.code) {
+                case 'auth/invalid-credential':
+                      errorMessage = 'Nieprawidłowy adres email lub hasło.';
+                      break;
                   case 'auth/invalid-custom-token':
                       errorMessage = 'Token autoryzacyjny jest nieprawidłowy lub wygasł.';
                       break;

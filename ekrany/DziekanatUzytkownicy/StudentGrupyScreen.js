@@ -190,16 +190,13 @@ else if (group.name.endsWith('_SEM')) groupType = 'Seminarium';
                     <View style={localStyles.expandedUserInfo}>
                         <View style={localStyles.userInfoTextContainer}> 
                             <View style={localStyles.userInfoRow}>
-                                <Text style={localStyles.userInfoLabel}>Typ:</Text>
-                                <Text style={localStyles.userInfoValue}>{item.groupType}</Text>
+                                <Text style={localStyles.userInfoLabel}>Typ: {item.groupType}</Text>
                             </View>
                             <View style={localStyles.userInfoRow}>
-                                <Text style={localStyles.userInfoLabel}>Przedmiot:</Text>
-                                <Text style={localStyles.userInfoValue}>{item.subjectName}</Text>
+                                <Text style={localStyles.userInfoLabel}>Przedmiot: {item.subjectName}</Text>
                             </View>
                             <View style={localStyles.userInfoRow}>
-                                <Text style={localStyles.userInfoLabel}>Prowadzący:</Text>
-                                <Text style={localStyles.userInfoValue}>{item.lecturerName}</Text>
+                                <Text style={localStyles.userInfoLabel}>Prowadzący: {item.lecturerName}</Text>
                             </View>
                         </View>
                     </View>

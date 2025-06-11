@@ -9,7 +9,8 @@ const localStyles = StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: 'center',
-        padding: 20,
+        padding: 10,
+        marginTop:20
     },
     addButton: {
         backgroundColor: '#2ecc71',
@@ -64,7 +65,7 @@ const localStyles = StyleSheet.create({
     },
     userItem: {
         backgroundColor: colors.cardBackground || '#FFFFFF',
-        padding: 15,
+        padding: 10,
         marginBottom: 10,
         borderRadius: 10,
         shadowColor: '#000',

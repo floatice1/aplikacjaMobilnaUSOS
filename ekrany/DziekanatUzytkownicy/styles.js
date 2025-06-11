@@ -9,7 +9,8 @@ const localStyles = StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: 'center',
-        padding: 20,
+        padding: 10,
+        marginTop:20
     },
     addButton: {
         backgroundColor: '#2ecc71',
@@ -64,7 +65,7 @@ const localStyles = StyleSheet.create({
     },
     userItem: {
         backgroundColor: colors.cardBackground || '#FFFFFF',
-        padding: 15,
+        padding: 5,
         marginBottom: 10,
         borderRadius: 10,
         shadowColor: '#000',
@@ -118,7 +119,7 @@ const localStyles = StyleSheet.create({
         justifyContent: 'space-around',
         marginBottom: 15,
         marginTop: 10,
-        paddingHorizontal: 10,
+        //paddingHorizontal: 10,
     },
     roleButton: {
         paddingVertical: 10,
@@ -148,7 +149,7 @@ const localStyles = StyleSheet.create({
         alignItems: 'center',
     },
     iconButton: {
-        marginRight: 10,
+        marginLeft: 10,
     },
     studentGroupsButton: {
         flexDirection: 'row',

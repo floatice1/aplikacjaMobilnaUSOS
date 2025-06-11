@@ -128,12 +128,10 @@ export default function DziekanatUzytkownicy({ navigation }) {
                     <View style={localStyles.expandedUserInfo}>
                         <View style={localStyles.userInfoTextContainer}>
                             <View style={localStyles.userInfoRow}>
-                                <Text style={localStyles.userInfoLabel}>Email:</Text>
-                                <Text style={localStyles.userInfoValue}>{item.email}</Text>
+                                <Text style={localStyles.userInfoLabel}>Email: {item.email}</Text>
                             </View>
                             <View style={localStyles.userInfoRow}>
-                                <Text style={localStyles.userInfoLabel}>Rola:</Text>
-                                <Text style={localStyles.userInfoValue}>{item.role}</Text>
+                                <Text style={localStyles.userInfoLabel}>Rola: {item.role}</Text>
                             </View>
                         </View>
                         <View style={localStyles.actionButtonsContainer}>
